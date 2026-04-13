@@ -49,7 +49,8 @@ export const aiNewsService = {
     }
     
     try {
-      console.log(`Fetching ${maxArticles} articles from TechCrunch AI News API...`);
+      console.log(`📡 Fetching ${maxArticles} articles from TechCrunch AI News API...`);
+      console.log(`🔗 URL: ${TECHCRUNCH_AI_NEWS_API.baseUrl}/news?max_articles=${maxArticles}&include_summary=true`);
       
       const url = `${TECHCRUNCH_AI_NEWS_API.baseUrl}/news?max_articles=${maxArticles}&include_summary=true`;
       
@@ -61,19 +62,21 @@ export const aiNewsService = {
         },
       });
       
+      console.log(`📊 Response status: ${response.status}`);
+      
       if (!response.ok) {
         throw new Error(`API request failed with status ${response.status}`);
       }
       
       const data = await response.json();
-      console.log('✓ Successfully fetched articles from API:', data.articles?.length || 0);
+      console.log('✅ Successfully fetched articles from API:', data.articles?.length || 0);
       
-      // 转换 API 响应格式为应用格式
+      // 转换 API 响应格式为应用格式（只使用列表数据，不获取详情）
       const articles: AINewsArticle[] = (data.articles || []).map((article: any) => ({
         id: article.id || Math.random().toString(36).substr(2, 9),
         title: article.title || 'Untitled',
-        content: article.content || article.summary || '',
-        summary: article.summary || article.content?.substring(0, 200) + '...' || '',
+        content: article.summary || '', // 先用 summary 作为 content
+        summary: article.summary || '',
         category: article.category || 'AI News',
         publishedAt: article.date || article.published_at || article.publishedAt || new Date().toISOString(),
         imageUrl: article.image_url || article.imageUrl,
@@ -104,6 +107,38 @@ export const aiNewsService = {
       cachedArticles = this.getSampleArticles();
       lastFetchTime = Date.now();
       return cachedArticles;
+    }
+  },
+
+  // 获取文章详情
+  async fetchArticleDetail(url: string): Promise<{ content: string; summary: string } | null> {
+    if (!url) return null;
+    
+    try {
+      const encodedUrl = encodeURIComponent(url);
+      const detailUrl = `${TECHCRUNCH_AI_NEWS_API.baseUrl}/news/detail?url=${encodedUrl}`;
+      
+      const response = await fetch(detailUrl, {
+        method: 'GET',
+        headers: {
+          'X-API-Key': TECHCRUNCH_AI_NEWS_API.apiKey,
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        console.warn(`Failed to fetch article detail: ${response.status}`);
+        return null;
+      }
+      
+      const data = await response.json();
+      return {
+        content: data.content || '',
+        summary: data.summary || '',
+      };
+    } catch (error) {
+      console.error('Failed to fetch article detail:', error);
+      return null;
     }
   },
 

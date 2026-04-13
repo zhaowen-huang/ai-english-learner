@@ -114,7 +114,24 @@ export default function ArticleDetailScreen() {
         try {
           const storedArticle = await AsyncStorage.getItem(`ai-news-${id}`);
           if (storedArticle) {
-            const articleData: AINewsArticle = JSON.parse(storedArticle);
+            let articleData: AINewsArticle = JSON.parse(storedArticle);
+            
+            // 如果文章内容不完整（只有摘要），获取完整内容
+            if (!articleData.content || articleData.content.length < 200) {
+              console.log('[AI News] 📖 Fetching full article content...');
+              const detail = await aiNewsService.fetchArticleDetail(articleData.sourceUrl);
+              if (detail) {
+                articleData = {
+                  ...articleData,
+                  content: detail.content || articleData.content,
+                  summary: detail.summary || articleData.summary,
+                };
+                // 更新 AsyncStorage 中的文章
+                await AsyncStorage.setItem(`ai-news-${id}`, JSON.stringify(articleData));
+                console.log('[AI News] ✅ Full content loaded:', detail.content?.length, 'chars');
+              }
+            }
+            
             setArticle(articleData);
             
             // 尝试从 AsyncStorage 加载缓存的翻译
@@ -174,7 +191,7 @@ export default function ArticleDetailScreen() {
   };
   
   // 后台自动翻译（不阻塞 UI，不显示 loading）
-  const autoTranslateArticleInBackground = async (articleToTranslate: GuardianArticle | null) => {
+  const autoTranslateArticleInBackground = async (articleToTranslate: GuardianArticle | AINewsArticle | null) => {
     if (!articleToTranslate) return;
     
     // 检查是否已经翻译过
@@ -311,7 +328,7 @@ export default function ArticleDetailScreen() {
   };
   
   // 自动翻译文章（流式渲染）
-  const autoTranslateArticle = async (articleToTranslate: GuardianArticle | null) => {
+  const autoTranslateArticle = async (articleToTranslate: GuardianArticle | AINewsArticle | null) => {
     if (!articleToTranslate) return;
     
     // 检查是否已经翻译过（避免重复翻译）
