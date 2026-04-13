@@ -9,6 +9,7 @@
     "web": "expo start --web",
     "build:web": "expo export -p web",
     "serve": "npx serve dist",
+    "test:news-api": "tsx scripts/test-techcrunch-api.ts",
     "lint": "eslint ."
   },
   "dependencies": {

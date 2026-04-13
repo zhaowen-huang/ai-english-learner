@@ -2,10 +2,18 @@
 export const SUPABASE_URL = 'https://zxufnsnuvezbwechwjeh.supabase.co';
 export const SUPABASE_ANON_KEY = 'sb_publishable_PHGuVhH5jaQIWo68B7Delg_g1OXwiOA';
 export const SUPABASE_PSW = 'nUEtu6JAUXDxzckS';
+
 // API 配置
 export const API_CONFIG = {
   timeout: 10000,
   retryAttempts: 3,
+};
+
+// TechCrunch AI News API 配置
+export const TECHCRUNCH_AI_NEWS_API = {
+  baseUrl: 'http://120.79.1.150:8000',
+  apiKey: 'sk-default-key-for-testing',
+  defaultMaxArticles: 10,
 };
 
 // 应用配置
