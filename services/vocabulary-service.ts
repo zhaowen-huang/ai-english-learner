@@ -92,6 +92,19 @@ export const vocabularyService = {
     return data as Vocabulary;
   },
 
+  // 根据单词获取生词
+  async getVocabularyByWord(userId: string, word: string) {
+    const { data, error } = await supabase
+      .from('vocabularies')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('word', word.toLowerCase())
+      .single();
+    
+    if (error) throw error;
+    return data as Vocabulary;
+  },
+
   // 检查单词是否已在生词本中
   async isWordInVocabulary(userId: string, word: string) {
     const { data, error } = await supabase

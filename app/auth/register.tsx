@@ -22,30 +22,22 @@ export default function RegisterScreen() {
   const router = useRouter();
 
   const handleRegister = async () => {
-    console.log('🔍 handleRegister called');
-    console.log('Fields:', { email, passwordLength: password.length, confirmPasswordLength: confirmPassword.length });
-    
     if (!email || !password || !confirmPassword) {
-      console.warn('❌ Validation failed: Missing fields');
       Alert.alert('错误', '请填写所有字段');
       return;
     }
 
     if (password !== confirmPassword) {
-      console.warn('❌ Validation failed: Password mismatch');
       Alert.alert('错误', '两次输入的密码不一致');
       return;
     }
 
     if (password.length < 6) {
-      console.warn('❌ Validation failed: Password too short');
       Alert.alert('错误', '密码长度至少为6位');
       return;
     }
 
-    console.log('✅ Validation passed, starting registration...');
     setIsLoading(true);
-    console.log('🚀 Calling signUp for:', email);
     try {
       await signUp(email, password);
       Alert.alert(
@@ -82,7 +74,7 @@ export default function RegisterScreen() {
             <TextInput
               style={styles.input}
               placeholder="请输入邮箱"
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor="#8B8680"
               value={email}
               onChangeText={setEmail}
               autoCapitalize="none"
@@ -96,7 +88,7 @@ export default function RegisterScreen() {
             <TextInput
               style={styles.input}
               placeholder="请输入密码（至少6位）"
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor="#8B8680"
               value={password}
               onChangeText={setPassword}
               secureTextEntry
@@ -109,7 +101,7 @@ export default function RegisterScreen() {
             <TextInput
               style={styles.input}
               placeholder="请再次输入密码"
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor="#8B8680"
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               secureTextEntry
@@ -118,16 +110,10 @@ export default function RegisterScreen() {
           </View>
 
           <TouchableOpacity
-            style={styles.registerButton}
-            onPress={() => {
-              console.log('✅ Register button clicked!');
-              console.log('Email:', email);
-              console.log('Password length:', password.length);
-              handleRegister();
-            }}
+            style={[styles.registerButton, isLoading && styles.buttonDisabled]}
+            onPress={handleRegister}
             disabled={isLoading}
-            activeOpacity={0.7}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            activeOpacity={0.8}
           >
             <Text style={styles.registerButtonText}>
               {isLoading ? '注册中...' : '注册'}
@@ -152,7 +138,7 @@ export default function RegisterScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FAF8F5',
   },
   scrollContent: {
     flexGrow: 1,
@@ -168,10 +154,15 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
   },
   logoText: {
     fontSize: 40,
@@ -179,43 +170,43 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#1E293B',
+    color: '#2C2C2C',
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: '#64748B',
+    color: '#8B8680',
   },
   form: {
-    // gap: 20, // RN Web 兼容性问题，改用 marginBottom
+    gap: 20,
   },
   inputGroup: {
-    marginBottom: 20,
+    gap: 8,
   },
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#475569',
+    color: '#2C2C2C',
   },
   input: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E5E0DB',
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
-    color: '#1E293B',
+    color: '#2C2C2C',
   },
   registerButton: {
-    backgroundColor: '#667EEA',
+    backgroundColor: '#C19A6B',
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 8,
-    shadowColor: '#667EEA',
+    shadowColor: '#C19A6B',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.25,
     shadowRadius: 8,
     elevation: 4,
   },
@@ -233,10 +224,10 @@ const styles = StyleSheet.create({
   },
   loginText: {
     fontSize: 15,
-    color: '#64748B',
+    color: '#8B8680',
   },
   loginHighlight: {
-    color: '#667EEA',
+    color: '#C19A6B',
     fontWeight: '600',
   },
 });

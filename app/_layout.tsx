@@ -7,7 +7,7 @@ import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client
 import { useAuthStore, initializeAuth } from '@/store/auth-store';
 import { queryClient } from '@/lib/query-client';
 import { asyncStoragePersister } from '@/lib/cache-config';
-import { ActivityIndicator, View, Text, StyleSheet } from 'react-native';
+import Loading from '@/components/Loading';
 
 export default function RootLayout() {
   const { user, isLoading } = useAuthStore();
@@ -18,12 +18,7 @@ export default function RootLayout() {
 
   // 等待初始化完成
   if (isLoading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#667EEA" />
-        <Text style={styles.loadingText}>加载中...</Text>
-      </View>
-    );
+    return <Loading message="初始化中..." />;
   }
 
   // 未登录则只显示登录注册页面
@@ -62,17 +57,3 @@ export default function RootLayout() {
     </PersistQueryClientProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 14,
-    color: '#64748B',
-  },
-});

@@ -19,6 +19,22 @@ export function useVocabularies() {
   });
 }
 
+// 获取单个生词（通过单词名）
+export function useVocabulary(word: string | undefined) {
+  const { user } = useAuthStore();
+  
+  return useQuery({
+    queryKey: ['vocabulary', user?.id, word],
+    queryFn: () => {
+      if (!user || !word) throw new Error('User or word not provided');
+      return vocabularyService.getVocabularyByWord(user.id, word);
+    },
+    enabled: !!user && !!word,
+    staleTime: cacheConfig.vocabularies.staleTime,
+    gcTime: cacheConfig.vocabularies.gcTime,
+  });
+}
+
 // 切换收藏状态
 export function useToggleWordFavorite() {
   const queryClient = useQueryClient();

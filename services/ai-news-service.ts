@@ -71,17 +71,46 @@ export const aiNewsService = {
       const data = await response.json();
       console.log('✅ Successfully fetched articles from API:', data.articles?.length || 0);
       
-      // 转换 API 响应格式为应用格式（只使用列表数据，不获取详情）
-      const articles: AINewsArticle[] = (data.articles || []).map((article: any) => ({
-        id: article.id || Math.random().toString(36).substr(2, 9),
-        title: article.title || 'Untitled',
-        content: article.summary || '', // 先用 summary 作为 content
-        summary: article.summary || '',
-        category: article.category || 'AI News',
-        publishedAt: article.date || article.published_at || article.publishedAt || new Date().toISOString(),
-        imageUrl: article.image_url || article.imageUrl,
-        sourceUrl: article.url || article.source_url || article.sourceUrl || '',
-        author: article.author,
+      // 转换 API 响应格式为应用格式
+      const articles: AINewsArticle[] = await Promise.all((data.articles || []).map(async (article: any) => {
+        // 尝试获取文章详情以获得完整内容
+        let fullContent = article.summary || '';
+        console.log(`📝 Article: ${article.title?.substring(0, 50)}...`);
+        console.log(`   Summary length: ${article.summary?.length || 0} chars`);
+        
+        if (article.url) {
+          try {
+            console.log(`   Fetching detail from: ${article.url}`);
+            const detail = await this.fetchArticleDetail(article.url);
+            if (detail && detail.content) {
+              console.log(`   Detail content length: ${detail.content.length} chars`);
+              if (detail.content.length > (article.summary?.length || 0)) {
+                fullContent = detail.content;
+                console.log(`   ✅ Using full content (${fullContent.length} chars)`);
+              } else {
+                console.log(`   ⚠️ Detail shorter than summary, using summary`);
+              }
+            } else {
+              console.log(`   ⚠️ No detail content returned`);
+            }
+          } catch (error) {
+            console.log(`   ❌ Failed to fetch detail:`, error instanceof Error ? error.message : String(error));
+          }
+        } else {
+          console.log(`   ⚠️ No URL available for detail fetch`);
+        }
+        
+        return {
+          id: article.id || Math.random().toString(36).substr(2, 9),
+          title: article.title || 'Untitled',
+          content: fullContent,
+          summary: article.summary || '',
+          category: article.category || 'AI News',
+          publishedAt: article.date || article.published_at || article.publishedAt || new Date().toISOString(),
+          imageUrl: article.image_url || article.imageUrl,
+          sourceUrl: article.url || article.source_url || article.sourceUrl || '',
+          author: article.author,
+        };
       }));
       
       if (articles.length > 0) {

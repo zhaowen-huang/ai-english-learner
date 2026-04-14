@@ -9,7 +9,6 @@ import {
   ScrollView,
   Alert,
   StyleSheet,
-  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/hooks/useAuth';
@@ -60,7 +59,7 @@ export default function LoginScreen() {
             <TextInput
               style={styles.input}
               placeholder="请输入邮箱"
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor="#8B8680"
               value={email}
               onChangeText={setEmail}
               autoCapitalize="none"
@@ -74,7 +73,7 @@ export default function LoginScreen() {
             <TextInput
               style={styles.input}
               placeholder="请输入密码"
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor="#8B8680"
               value={password}
               onChangeText={setPassword}
               secureTextEntry
@@ -111,7 +110,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FAF8F5',
   },
   scrollContent: {
     flexGrow: 1,
@@ -127,10 +126,15 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
   },
   logoText: {
     fontSize: 40,
@@ -138,43 +142,44 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#1E293B',
+    color: '#2C2C2C',
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: '#64748B',
+    color: '#8B8680',
   },
   form: {
     gap: 20,
   },
   inputGroup: {
     gap: 8,
+    marginBottom: Platform.OS === 'web' ? 0 : 0,
   },
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#475569',
+    color: '#2C2C2C',
   },
   input: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E5E0DB',
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
-    color: '#1E293B',
+    color: '#2C2C2C',
   },
   loginButton: {
-    backgroundColor: '#667EEA',
+    backgroundColor: '#C19A6B',
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 8,
-    shadowColor: '#667EEA',
+    shadowColor: '#C19A6B',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.25,
     shadowRadius: 8,
     elevation: 4,
   },
@@ -192,10 +197,10 @@ const styles = StyleSheet.create({
   },
   registerText: {
     fontSize: 15,
-    color: '#64748B',
+    color: '#8B8680',
   },
   registerHighlight: {
-    color: '#667EEA',
+    color: '#C19A6B',
     fontWeight: '600',
   },
 });
