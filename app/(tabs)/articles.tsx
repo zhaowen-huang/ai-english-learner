@@ -1,37 +1,31 @@
 import React, { useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, RefreshControl, ActivityIndicator, StyleSheet, Dimensions, Platform, StatusBar } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, RefreshControl, ActivityIndicator, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useGuardianArticles } from '@/hooks';
-import type { GuardianArticle } from '@/services/guardian-api-service';
-
-const { width } = Dimensions.get('window');
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAINewsArticles } from '@/hooks';
+import { aiNewsService } from '@/services/ai-news-service';
+import type { AINewsArticle } from '@/services/ai-news-service';
 
 // 分类颜色映射
 const categoryColors: Record<string, { bg: string; text: string }> = {
-  'Science': { bg: '#E3F2FD', text: '#1976D2' },
+  'AI': { bg: '#E3F2FD', text: '#1976D2' },
   'Technology': { bg: '#F3E5F5', text: '#7B1FA2' },
-  'Environment': { bg: '#E8F5E9', text: '#388E3C' },
-  'Economy': { bg: '#FFF3E0', text: '#F57C00' },
-  'Culture': { bg: '#FCE4EC', text: '#C2185B' },
-  'Politics': { bg: '#E0F7FA', text: '#00838F' },
-  'Sports': { bg: '#FFF8E1', text: '#F9A825' },
-  'Health': { bg: '#E8F5E9', text: '#2E7D32' },
-  'News': { bg: '#E3F2FD', text: '#1976D2' },
-  'World': { bg: '#E8EAF6', text: '#303F9F' },
-  'Education': { bg: '#FFF3E0', text: '#E65100' },
+  'Business': { bg: '#E8F5E9', text: '#388E3C' },
+  'Science': { bg: '#FFF3E0', text: '#F57C00' },
+  'AI News': { bg: '#FCE4EC', text: '#C2185B' },
 };
 
 export default function ArticlesScreen() {
   const [selectedCategory, setSelectedCategory] = useState<string>('全部');
   const router = useRouter();
 
-  // 使用 TanStack Query 获取文章
+  // 使用 TanStack Query 获取 AI 新闻文章
   const { 
     data: articles = [], 
     isLoading: loading,
     refetch,
     isRefetching
-  } = useGuardianArticles(1, 30);
+  } = useAINewsArticles();
 
   // 提取分类
   const categories = ['全部', ...Array.from(new Set(articles.map(a => a.category)))];
@@ -41,6 +35,8 @@ export default function ArticlesScreen() {
     : articles;
 
   const onRefresh = async () => {
+    // 清除服务缓存
+    aiNewsService.clearCache();
     await refetch();
   };
 
@@ -48,83 +44,89 @@ export default function ArticlesScreen() {
     return categoryColors[category] || { bg: '#E3F2FD', text: '#1976D2' };
   };
 
-  const renderArticle = ({ item, index }: { item: GuardianArticle; index: number }) => {
+  const handleOpenArticle = (article: AINewsArticle) => {
+    // 将文章数据存储到 AsyncStorage，供详情页使用
+    const saveArticleToStorage = async () => {
+      try {
+        await AsyncStorage.setItem(`ai-news-${article.id}`, JSON.stringify(article));
+        // 导航到文章详情页
+        router.push(`/article/${article.id}?source=ai-news`);
+      } catch (error) {
+        console.error('Failed to save article:', error);
+      }
+    };
+    saveArticleToStorage();
+  };
+
+  const renderArticle = ({ item }: { item: AINewsArticle }) => {
     const colors = getCategoryColors(item.category);
     
     return (
-      <TouchableOpacity
+      <TouchableOpacity 
         style={styles.card}
+        onPress={() => handleOpenArticle(item)}
         activeOpacity={0.7}
-        onPress={() => router.push(`/article/${item.id}`)}
       >
-        {/* 卡片头部 */}
-        <View style={styles.cardHeader}>
+        <View style={styles.cardContent}>
+          {/* 分类标签 */}
           <View style={[styles.categoryBadge, { backgroundColor: colors.bg }]}>
             <Text style={[styles.categoryText, { color: colors.text }]}>
               {item.category}
             </Text>
           </View>
-          <Text style={styles.dateText}>
-            {new Date(item.publishedAt).toLocaleDateString('zh-CN')}
+          
+          {/* 标题 */}
+          <Text style={styles.title} numberOfLines={2}>
+            {item.title}
           </Text>
-        </View>
-        
-        {/* 标题 */}
-        <Text style={styles.title} numberOfLines={2}>
-          {item.title}
-        </Text>
-        
-        {/* 摘要 */}
-        <Text style={styles.summary} numberOfLines={3}>
-          {item.description || item.content}
-        </Text>
-        
-        {/* 底部信息 */}
-        <View style={styles.cardFooter}>
-          <View style={styles.wordCountBadge}>
-            <Text style={styles.wordCountText}>
-              {(item.content || '').split(/\s+/).length} 词
+          
+          {/* 摘要 */}
+          <Text style={styles.summary} numberOfLines={3}>
+            {item.summary}
+          </Text>
+          
+          {/* 底部信息 */}
+          <View style={styles.footer}>
+            <Text style={styles.date}>
+              {new Date(item.publishedAt).toLocaleDateString('zh-CN')}
             </Text>
-          </View>
-          <View style={styles.readButton}>
-            <Text style={styles.readButtonText}>阅读 →</Text>
           </View>
         </View>
       </TouchableOpacity>
     );
   };
 
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#667EEA" />
+        <Text style={styles.loadingText}>加载 AI 新闻中...</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
-      {/* 状态栏 */}
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-      
-      {/* Header - 适配安全区域 */}
-      <View style={[styles.header, { paddingTop: Platform.OS === 'ios' ? 50 : StatusBar.currentHeight || 24 }]}>
-        <Text style={styles.headerTitle}>文章</Text>
-        <Text style={styles.headerSubtitle}>发现优质英文新闻</Text>
-      </View>
-      
-      {/* Category Filter */}
-      <View style={styles.filterContainer}>
+      {/* 分类筛选 */}
+      <View style={styles.categoryContainer}>
         <FlatList
           horizontal
-          data={categories}
-          keyExtractor={(item, index) => `${item}-${index}`}
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterList}
+          data={categories}
+          keyExtractor={(item) => item}
+          contentContainerStyle={styles.categoryList}
           renderItem={({ item }) => (
             <TouchableOpacity
               style={[
-                styles.filterItem,
-                selectedCategory === item && styles.filterItemActive
+                styles.categoryButton,
+                selectedCategory === item && styles.categoryButtonActive
               ]}
               onPress={() => setSelectedCategory(item)}
             >
               <Text
                 style={[
-                  styles.filterText,
-                  selectedCategory === item && styles.filterTextActive
+                  styles.categoryButtonText,
+                  selectedCategory === item && styles.categoryButtonTextActive
                 ]}
               >
                 {item}
@@ -134,31 +136,31 @@ export default function ArticlesScreen() {
         />
       </View>
 
-      {/* Articles List */}
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#667EEA" />
-          <Text style={styles.loadingText}>正在加载文章...</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={filteredArticles}
-          renderItem={renderArticle}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={[styles.listContent, { paddingBottom: Platform.OS === 'ios' ? 100 : 90 }]}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl refreshing={isRefetching} onRefresh={onRefresh} tintColor="#667EEA" />
-          }
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyIcon}>📭</Text>
-              <Text style={styles.emptyText}>暂无文章</Text>
-              <Text style={styles.emptySubtext}>下拉刷新获取最新内容</Text>
-            </View>
-          }
-        />
-      )}
+      {/* 文章列表 */}
+      <FlatList
+        data={filteredArticles}
+        renderItem={renderArticle}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefetching}
+            onRefresh={onRefresh}
+            colors={['#667EEA']}
+            tintColor="#667EEA"
+          />
+        }
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyIcon}>📰</Text>
+            <Text style={styles.emptyTitle}>暂无文章</Text>
+            <Text style={styles.emptyDescription}>
+              请稍后重试或检查网络连接
+            </Text>
+          </View>
+        }
+      />
     </View>
   );
 }
@@ -168,66 +170,44 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F8FAFC',
   },
-  header: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 4,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: '#64748B',
-  },
-  filterContainer: {
-    backgroundColor: '#FFFFFF',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  filterList: {
-    paddingHorizontal: 16,
-    gap: 8,
-  },
-  filterItem: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#F1F5F9',
-    marginRight: 8,
-  },
-  filterItemActive: {
-    backgroundColor: '#667EEA',
-    shadowColor: '#667EEA',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  filterText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#64748B',
-  },
-  filterTextActive: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#F8FAFC',
   },
   loadingText: {
     marginTop: 12,
     fontSize: 14,
     color: '#64748B',
+  },
+  categoryContainer: {
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+  },
+  categoryList: {
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+  },
+  categoryButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginRight: 8,
+    backgroundColor: '#F1F5F9',
+  },
+  categoryButtonActive: {
+    backgroundColor: '#667EEA',
+  },
+  categoryButtonText: {
+    fontSize: 14,
+    color: '#64748B',
+    fontWeight: '500',
+  },
+  categoryButtonTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '600',
   },
   listContent: {
     padding: 16,
@@ -235,32 +215,27 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
+    marginBottom: 16,
     padding: 16,
-    marginBottom: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
     elevation: 3,
   },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
+  cardContent: {
+    flex: 1,
   },
   categoryBadge: {
+    alignSelf: 'flex-start',
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 4,
     borderRadius: 12,
+    marginBottom: 8,
   },
   categoryText: {
     fontSize: 12,
     fontWeight: '600',
-  },
-  dateText: {
-    fontSize: 12,
-    color: '#94A3B8',
   },
   title: {
     fontSize: 18,
@@ -275,33 +250,14 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginBottom: 12,
   },
-  cardFooter: {
+  footer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
-    paddingTop: 12,
   },
-  wordCountBadge: {
-    backgroundColor: '#F8FAFC',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  wordCountText: {
+  date: {
     fontSize: 12,
-    color: '#64748B',
-    fontWeight: '500',
-  },
-  readButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  readButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#667EEA',
+    color: '#94A3B8',
   },
   emptyContainer: {
     alignItems: 'center',
@@ -309,17 +265,20 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
   },
   emptyIcon: {
-    fontSize: 48,
+    fontSize: 64,
     marginBottom: 16,
   },
-  emptyText: {
+  emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#64748B',
+    color: '#475569',
     marginBottom: 8,
   },
-  emptySubtext: {
+  emptyDescription: {
     fontSize: 14,
     color: '#94A3B8',
+    textAlign: 'center',
+    paddingHorizontal: 32,
+    lineHeight: 20,
   },
 });

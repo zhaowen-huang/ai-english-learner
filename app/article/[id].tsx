@@ -25,7 +25,7 @@ import { dictionaryService } from '@/services/dictionary-service';
 import { aliyunLLMService } from '@/services/aliyun-llm-service';
 import { useAuthStore } from '@/store/auth-store';
 import { SuccessToast } from '@/components/SuccessToast';
-import { useGuardianArticles, useWordDefinition, useWordDetailWithContext, useToggleWordFavorite, useVocabularies } from '@/hooks';
+import { useWordDefinition, useWordDetailWithContext, useToggleWordFavorite, useVocabularies } from '@/hooks';
 import type { GuardianArticle } from '@/services/guardian-api-service';
 import type { AINewsArticle } from '@/services/ai-news-service';
 import type { WordDefinition } from '@/services/dictionary-service';
@@ -93,7 +93,6 @@ export default function ArticleDetailScreen() {
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
   
   // TanStack Query hooks (must be called after all useState)
-  const { data: articles = [], isLoading: loadingArticles } = useGuardianArticles(1, 100);
   const { data: wordDefinition, isLoading: loadingDefinition } = useWordDefinition(selectedWord || null);
   const { data: wordExplanation, isLoading: loadingExplanation } = useWordDetailWithContext(
     selectedWord || null,
@@ -170,30 +169,13 @@ export default function ArticleDetailScreen() {
         return;
       }
       
-      // Guardian 文章逻辑
-      if (articles.length > 0) {
-        // 解码路由参数中的 ID
-        const decodedId = decodeURIComponent(id as string);
-        
-        const found = articles.find(a => a.id === decodedId);
-        if (found) {
-          setArticle(found);
-          
-          // 尝试从 AsyncStorage 加载缓存的翻译
-          loadAndShowCachedTranslation(found.id);
-          
-          // 后台自动翻译（不阻塞 UI）
-          autoTranslateArticleInBackground(found);
-        } else {
-          Alert.alert('提示', '文章可能已过期，请返回列表重新选择');
-          router.back();
-        }
-        setLoading(false);
-      }
+      // 如果不是 AI News，显示错误
+      Alert.alert('提示', '不支持的文章类型');
+      router.back();
     };
     
     loadArticle();
-  }, [articles, id, source]);
+  }, [id, source]);
   
   // 加载并显示缓存的翻译
   const loadAndShowCachedTranslation = async (articleId: string) => {
