@@ -30,7 +30,10 @@
       "favicon": "./assets/favicon.png",
       "bundler": "metro",
       "output": "static",
-      "pwa": true
+      "pwa": true,
+      "display": "standalone",
+      "themeColor": "#2C2C2C",
+      "backgroundColor": "#FAF8F5"
     },
     "plugins": [
       "expo-router",
