@@ -35,28 +35,6 @@ interface SimpleWordExplanation {
   exampleSentences: string[];
 }
 
-// 智能句子分割函数：避免分割小数和缩写
-function splitIntoSentences(text: string): string[] {
-  // 先保护小数点：将数字中的小数点替换为特殊标记
-  let processed = text.replace(/(\d)\.(\d)/g, '$1<DOT>$2');
-  
-  // 保护常见缩写（需要更精确的匹配，确保是完整的缩写）
-  const abbreviations = ['Mr', 'Mrs', 'Ms', 'Dr', 'Prof', 'Sr', 'Jr', 'vs', 'etc', 'e.g', 'i.e'];
-  abbreviations.forEach(abbr => {
-    // 使用单词边界确保只匹配完整的缩写
-    const regex = new RegExp(`\\b${abbr.replace('.', '\\.')}\\.`, 'g');
-    processed = processed.replace(regex, `${abbr}<ABBR>`);
-  });
-  
-  // 按句子分割
-  const sentences = processed.match(/[^.!?]+(?:[.!?]+|$)/g) || [processed];
-  
-  // 恢复小数点和缩写
-  return sentences.map(s => 
-    s.replace(/<DOT>/g, '.').replace(/<ABBR>/g, '.').trim()
-  ).filter(s => s);
-}
-
 const categoryColors: Record<string, { bg: string; text: string }> = {
   'Science': { bg: '#E3F2FD', text: '#1976D2' },
   'Technology': { bg: '#F3E5F5', text: '#7B1FA2' },
@@ -208,35 +186,23 @@ export default function ArticleDetailScreen() {
     console.log('[Background Translation] 🔄 Starting background translation...');
     
     try {
-      // 按段落和句子分割文章内容
+      // 按段落分割文章内容
       const paragraphs = articleToTranslate.content.split(/\n+/).filter(p => p.trim());
-      const allSentences: string[] = [];
-      const sentenceKeys: string[] = [];
       
-      paragraphs.forEach((paragraph, paraIdx) => {
-        const sentences = splitIntoSentences(paragraph);
-        sentences.forEach((sentence, sentIdx) => {
-          if (sentence.trim()) {
-            allSentences.push(sentence.trim());
-            sentenceKeys.push(`${paraIdx}-${sentIdx}`);
-          }
-        });
-      });
+      console.log(`[Background Translation] 📝 Total ${paragraphs.length} paragraphs to translate`);
       
-      console.log(`[Background Translation] 📝 Total ${allSentences.length} sentences to translate`);
-      
-      // 分批翻译，每批 5 句
-      const BATCH_SIZE = 5;
+      // 分批翻译，每批 2 段
+      const BATCH_SIZE = 2;
       const translationMap: Record<string, string> = {};
       
-      for (let i = 0; i < allSentences.length; i += BATCH_SIZE) {
-        const batchSentences = allSentences.slice(i, i + BATCH_SIZE);
-        const batchKeys = sentenceKeys.slice(i, i + BATCH_SIZE);
+      for (let i = 0; i < paragraphs.length; i += BATCH_SIZE) {
+        const batchParagraphs = paragraphs.slice(i, i + BATCH_SIZE);
+        const batchKeys = batchParagraphs.map((_, idx) => `${i + idx}`);
         
         console.log(`[Background Translation] 🔄 Translating batch ${Math.floor(i / BATCH_SIZE) + 1}...`);
         
         // 翻译当前批次
-        const batchTranslations = await aliyunLLMService.translateSentences(batchSentences);
+        const batchTranslations = await aliyunLLMService.translateSentences(batchParagraphs);
         
         // 检查返回值是否为数组
         if (!batchTranslations || !Array.isArray(batchTranslations)) {
@@ -351,35 +317,23 @@ export default function ArticleDetailScreen() {
       setLoadingTranslation(true);
       console.log('[Translation] 🔄 Starting streaming translation...');
       
-      // 按段落和句子分割文章内容
+      // 按段落分割文章内容
       const paragraphs = articleToTranslate.content.split(/\n+/).filter(p => p.trim());
-      const allSentences: string[] = [];
-      const sentenceKeys: string[] = [];
       
-      paragraphs.forEach((paragraph, paraIdx) => {
-        const sentences = splitIntoSentences(paragraph);
-        sentences.forEach((sentence, sentIdx) => {
-          if (sentence.trim()) {
-            allSentences.push(sentence.trim());
-            sentenceKeys.push(`${paraIdx}-${sentIdx}`);
-          }
-        });
-      });
+      console.log(`[Translation] 📝 Total ${paragraphs.length} paragraphs to translate`);
       
-      console.log(`[Translation] 📝 Total ${allSentences.length} sentences to translate`);
-      
-      // 分批翻译，每批 5 句
-      const BATCH_SIZE = 5;
+      // 分批翻译，每批 2 段
+      const BATCH_SIZE = 2;
       const translationMap: Record<string, string> = {};
       
-      for (let i = 0; i < allSentences.length; i += BATCH_SIZE) {
-        const batchSentences = allSentences.slice(i, i + BATCH_SIZE);
-        const batchKeys = sentenceKeys.slice(i, i + BATCH_SIZE);
+      for (let i = 0; i < paragraphs.length; i += BATCH_SIZE) {
+        const batchParagraphs = paragraphs.slice(i, i + BATCH_SIZE);
+        const batchKeys = batchParagraphs.map((_, idx) => `${i + idx}`);
         
-        console.log(`[Translation] 🔄 Translating batch ${Math.floor(i / BATCH_SIZE) + 1} (${batchSentences.length} sentences)...`);
+        console.log(`[Translation] 🔄 Translating batch ${Math.floor(i / BATCH_SIZE) + 1} (${batchParagraphs.length} paragraphs)...`);
         
         // 翻译当前批次
-        const batchTranslations = await aliyunLLMService.translateSentences(batchSentences);
+        const batchTranslations = await aliyunLLMService.translateSentences(batchParagraphs);
         
         // 立即更新 UI
         batchTranslations.forEach((trans, idx) => {
@@ -394,7 +348,7 @@ export default function ArticleDetailScreen() {
         console.log(`[Translation] ✅ Batch ${Math.floor(i / BATCH_SIZE) + 1} completed, total: ${Object.keys(translationMap).length}`);
       }
       
-      console.log(`[Translation] ✅ All translations completed: ${Object.keys(translationMap).length} sentences`);
+      console.log(`[Translation] ✅ All translations completed: ${Object.keys(translationMap).length} paragraphs`);
       
       // 保存到 AsyncStorage 缓存
       if (articleToTranslate.id) {
@@ -813,55 +767,49 @@ ${article.content}
                 const paragraphs = article.content.split(/\n+/).filter(p => p.trim());
                 
                 return paragraphs.map((paragraph, paraIdx) => {
-                  // 使用智能句子分割，避免分割小数和缩写
-                  const sentences = splitIntoSentences(paragraph);
+                  const trimmed = paragraph.trim();
+                  if (!trimmed) return null;
                   
-                  return sentences.map((sentence, sentIdx) => {
-                    const trimmed = sentence.trim();
-                    if (!trimmed) return null;
-                    
-                    // 按空格分词
-                    const words = trimmed.split(/\s+/);
-                    const translation = translations[`${paraIdx}-${sentIdx}`];
-                    const sentenceKey = `${paraIdx}-${sentIdx}`;
-                    
-                    if (words.length === 0) return null;
-                    
-                    return (
-                      <View key={sentenceKey} style={styles.sentenceBlock}>
-                        {/* 英文句子 - 使用 flexWrap 实现自动换行 */}
-                        <View style={styles.englishSentence}>
-                          {words.map((word, wordIdx) => {
-                            // 清理单词用于查询
-                            const cleanWord = word.replace(/[^a-zA-Z'-]/g, '');
-                            const isPunctuation = !cleanWord;
-                            
-                            if (isPunctuation) {
-                              return <Text key={wordIdx} style={styles.wordText}>{word} </Text>;
-                            }
-                            
-                            return (
-                              <TouchableOpacity
-                                key={wordIdx}
-                                onPress={() => handleWordPress(word, trimmed)}
-                                activeOpacity={0.7}
-                                style={styles.wordButton}
-                              >
-                                <Text style={styles.wordText}>{word} </Text>
-                              </TouchableOpacity>
-                            );
-                          })}
-                        </View>
-                        
-                        {/* 中文翻译 */}
-                        {showTranslation && translation && (
-                          <View style={styles.translationBlock}>
-                            <Text style={styles.translationSentenceText}>{translation}</Text>
-                          </View>
-                        )}
+                  // 按空格分词
+                  const words = trimmed.split(/\s+/);
+                  const translation = translations[`${paraIdx}`];
+                  
+                  if (words.length === 0) return null;
+                  
+                  return (
+                    <View key={`para-${paraIdx}`} style={styles.paragraphBlock}>
+                      {/* 英文段落 - 使用 flexWrap 实现自动换行 */}
+                      <View style={styles.englishParagraph}>
+                        {words.map((word, wordIdx) => {
+                          // 清理单词用于查询
+                          const cleanWord = word.replace(/[^a-zA-Z'-]/g, '');
+                          const isPunctuation = !cleanWord;
+                          
+                          if (isPunctuation) {
+                            return <Text key={wordIdx} style={styles.wordText}>{word} </Text>;
+                          }
+                          
+                          return (
+                            <TouchableOpacity
+                              key={wordIdx}
+                              onPress={() => handleWordPress(word, trimmed)}
+                              activeOpacity={0.7}
+                              style={styles.wordButton}
+                            >
+                              <Text style={styles.wordText}>{word} </Text>
+                            </TouchableOpacity>
+                          );
+                        })}
                       </View>
-                    );
-                  });
+                      
+                      {/* 中文翻译 */}
+                      {showTranslation && translation && (
+                        <View style={styles.translationBlock}>
+                          <Text style={styles.translationSentenceText}>{translation}</Text>
+                        </View>
+                      )}
+                    </View>
+                  );
                 });
               })()}
             </View>
@@ -1256,10 +1204,10 @@ const styles = StyleSheet.create({
   },
   wordsContainer: {
   },
-  sentenceBlock: {
+  paragraphBlock: {
     marginBottom: 25,
   },
-  englishSentence: {
+  englishParagraph: {
     flexDirection: 'row',
     flexWrap: 'wrap',
   },
