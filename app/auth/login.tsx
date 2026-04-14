@@ -1,9 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  TextInput,
-  TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -12,28 +10,38 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/hooks/useAuth';
+import { validateLogin } from '@/utils/validation';
+import { Button, Input } from '@/components';
+import { colors, textStyles, borderRadius } from '@/theme';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const { signIn } = useAuth();
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const { signIn, isLoading, error, clearError } = useAuth();
   const router = useRouter();
 
+  // 清除错误当用户开始输入
+  useEffect(() => {
+    if (validationError || error) {
+      setValidationError(null);
+      clearError();
+    }
+  }, [email, password]);
+
   const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert('错误', '请填写所有字段');
+    // 前端验证
+    const validation = validateLogin(email, password);
+    if (!validation.isValid) {
+      setValidationError(validation.error || '验证失败');
       return;
     }
 
-    setIsLoading(true);
     try {
       await signIn(email, password);
       router.replace('/(tabs)');
     } catch (error: any) {
       Alert.alert('登录失败', error.message || '请检查邮箱和密码');
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -42,7 +50,11 @@ export default function LoginScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent} 
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         {/* Logo区域 */}
         <View style={styles.header}>
           <View style={styles.logoContainer}>
@@ -54,53 +66,62 @@ export default function LoginScreen() {
 
         {/* 表单区域 */}
         <View style={styles.form}>
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>邮箱</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="请输入邮箱"
-              placeholderTextColor="#8B8680"
-              value={email}
-              onChangeText={setEmail}
-              autoCapitalize="none"
-              keyboardType="email-address"
-              editable={!isLoading}
-            />
-          </View>
+          {/* 邮箱输入 */}
+          <Input
+            label="邮箱"
+            placeholder="请输入邮箱"
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            autoComplete="email"
+            editable={!isLoading}
+            error={validationError && !email ? validationError : undefined}
+            returnKeyType="next"
+          />
 
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>密码</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="请输入密码"
-              placeholderTextColor="#8B8680"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              editable={!isLoading}
-            />
-          </View>
+          {/* 密码输入 */}
+          <Input
+            label="密码"
+            placeholder="请输入密码"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            editable={!isLoading}
+            autoComplete="password"
+            error={validationError && !password ? validationError : undefined}
+            returnKeyType="done"
+            onSubmitEditing={handleLogin}
+          />
 
-          <TouchableOpacity
-            style={[styles.loginButton, isLoading && styles.buttonDisabled]}
+          {/* 全局错误提示 */}
+          {(validationError && email && password) || error ? (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{validationError || error}</Text>
+            </View>
+          ) : null}
+
+          {/* 登录按钮 */}
+          <Button
+            title={isLoading ? '登录中...' : '登录'}
             onPress={handleLogin}
+            loading={isLoading}
             disabled={isLoading}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.loginButtonText}>
-              {isLoading ? '登录中...' : '登录'}
-            </Text>
-          </TouchableOpacity>
+            fullWidth
+          />
 
-          <TouchableOpacity
-            style={styles.registerLink}
-            onPress={() => router.push('/auth/register' as any)}
-            disabled={isLoading}
-          >
+          {/* 注册链接 */}
+          <View style={styles.registerLink}>
             <Text style={styles.registerText}>
-              还没有账户？<Text style={styles.registerHighlight}>立即注册</Text>
+              还没有账户？{' '}
+              <Text 
+                style={styles.registerHighlight}
+                onPress={() => !isLoading && router.push('/auth/register' as any)}
+              >
+                立即注册
+              </Text>
             </Text>
-          </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -110,7 +131,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAF8F5',
+    backgroundColor: colors.background,
   },
   scrollContent: {
     flexGrow: 1,
@@ -120,87 +141,65 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: 48,
   },
   logoContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#FFFFFF',
+    width: 88,
+    height: 88,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
+    marginBottom: 24,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
   },
   logoText: {
-    fontSize: 40,
+    fontSize: 44,
   },
   title: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#2C2C2C',
+    ...textStyles.h2,
+    color: colors.text.primary,
     marginBottom: 8,
   },
   subtitle: {
-    fontSize: 16,
-    color: '#8B8680',
+    ...textStyles.bodyLarge,
+    color: colors.text.tertiary,
   },
   form: {
     gap: 20,
   },
-  inputGroup: {
-    gap: 8,
-    marginBottom: Platform.OS === 'web' ? 0 : 0,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#2C2C2C',
-  },
-  input: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E5E0DB',
-    borderRadius: 12,
+  errorContainer: {
+    backgroundColor: colors.error.lighter,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.error.DEFAULT,
     paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
-    color: '#2C2C2C',
+    paddingVertical: 12,
+    borderRadius: borderRadius.md,
   },
-  loginButton: {
-    backgroundColor: '#C19A6B',
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginTop: 8,
-    shadowColor: '#C19A6B',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  loginButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
+  errorText: {
+    ...textStyles.bodySmall,
+    color: colors.error.DEFAULT,
   },
   registerLink: {
     alignItems: 'center',
     marginTop: 8,
   },
   registerText: {
-    fontSize: 15,
-    color: '#8B8680',
+    ...textStyles.body,
+    color: colors.text.tertiary,
   },
   registerHighlight: {
-    color: '#C19A6B',
-    fontWeight: '600',
+    color: colors.primary.DEFAULT,
+    fontWeight: textStyles.button.fontWeight,
   },
 });

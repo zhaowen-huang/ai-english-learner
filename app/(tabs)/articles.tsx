@@ -1,42 +1,16 @@
 import React from 'react';
-import { View, Text, FlatList, TouchableOpacity, RefreshControl, StyleSheet, Platform } from 'react-native';
+import { View, Text, FlatList, RefreshControl, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAINewsArticles } from '@/hooks';
 import { aiNewsService } from '@/services/ai-news-service';
 import Loading from '@/components/Loading';
+import EmptyState from '@/components/EmptyState';
+import Badge from '@/components/Badge';
+import Card from '@/components/Card';
+import { formatDate, estimateReadTime } from '@/utils/format';
+import { colors, textStyles, borderRadius, spacing } from '@/theme';
 import type { AINewsArticle } from '@/services/ai-news-service';
-
-// 安全的日期格式化函数
-function formatDate(dateString: string): string {
-  if (!dateString) return '未知日期';
-  
-  try {
-    if (dateString.includes('ago') || dateString.includes('minutes') || 
-        dateString.includes('hours') || dateString.includes('days')) {
-      return dateString;
-    }
-    
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) {
-      return dateString;
-    }
-    return date.toLocaleDateString('zh-CN', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-  } catch (error) {
-    return dateString;
-  }
-}
-
-// 估算阅读时间（假设平均阅读速度 200 词/分钟）
-function estimateReadTime(content: string): string {
-  const wordCount = content.split(/\s+/).length;
-  const minutes = Math.ceil(wordCount / 200);
-  return `${minutes} min`;
-}
 
 // 统一的 Article 类型
 type UnifiedArticle = {
@@ -84,15 +58,13 @@ export default function ArticlesScreen() {
 
   const renderArticle = ({ item }: { item: UnifiedArticle }) => {
     return (
-      <TouchableOpacity 
-        style={styles.card}
+      <Card 
         onPress={() => handleOpenArticle(item)}
-        activeOpacity={0.6}
+        padding={spacing[5]}
+        style={styles.card}
       >
         {/* 分类标签 */}
-        <View style={styles.categoryBadge}>
-          <Text style={styles.categoryText}>{item.category}</Text>
-        </View>
+        <Badge label={item.category} variant="primary" size="sm" style={styles.badge} />
         
         {/* 标题 */}
         <Text style={styles.title} numberOfLines={3}>
@@ -115,7 +87,7 @@ export default function ArticlesScreen() {
           </View>
           <Text style={styles.arrow}>›</Text>
         </View>
-      </TouchableOpacity>
+      </Card>
     );
   };
 
@@ -136,14 +108,16 @@ export default function ArticlesScreen() {
           <RefreshControl
             refreshing={isRefetching}
             onRefresh={onRefresh}
-            colors={['#C19A6B']}
-            tintColor="#C19A6B"
+            colors={[colors.primary.DEFAULT]}
+            tintColor={colors.primary.DEFAULT}
           />
         }
         ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>暂无文章</Text>
-          </View>
+          <EmptyState
+            icon="📰"
+            title="暂无文章"
+            description="下拉刷新获取最新文章"
+          />
         }
       />
     </View>
@@ -153,89 +127,58 @@ export default function ArticlesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAF8F5',
+    backgroundColor: colors.background,
   },
   listContent: {
-    padding: 20,
+    padding: spacing[5],
   },
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 2,
-    marginBottom: 20,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: '#E8E4DF',
+    marginBottom: spacing[4],
   },
-  categoryBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderWidth: 1,
-    borderColor: '#C19A6B',
-    marginBottom: 12,
-  },
-  categoryText: {
-    fontSize: 11,
-    color: '#C19A6B',
-    fontWeight: '500',
-    letterSpacing: 0.5,
+  badge: {
+    marginBottom: spacing[3],
   },
   title: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#2C2C2C',
-    marginBottom: 12,
-    lineHeight: 28,
-    fontFamily: Platform.select({
-      ios: 'Georgia',
-      android: 'serif',
-    }),
+    ...textStyles.h3,
+    color: colors.text.primary,
+    marginBottom: spacing[3],
   },
   summary: {
-    fontSize: 15,
-    color: '#5C5C5C',
-    lineHeight: 22,
-    marginBottom: 16,
+    ...textStyles.body,
+    color: colors.text.secondary,
+    marginBottom: spacing[4],
+    lineHeight: 24,
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     borderTopWidth: 1,
-    borderTopColor: '#F0EDE8',
-    paddingTop: 12,
+    borderTopColor: colors.neutral[100],
+    paddingTop: spacing[3],
   },
   footerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   date: {
-    fontSize: 13,
-    color: '#8B8680',
+    ...textStyles.bodySmall,
+    color: colors.text.tertiary,
   },
   dotSeparator: {
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#C4C0BA',
-    marginHorizontal: 8,
+    backgroundColor: colors.neutral[400],
+    marginHorizontal: spacing[2],
   },
   readTime: {
-    fontSize: 13,
-    color: '#8B8680',
+    ...textStyles.bodySmall,
+    color: colors.text.tertiary,
   },
   arrow: {
-    fontSize: 20,
-    color: '#C19A6B',
-    fontWeight: '300',
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: '#8B8680',
+    fontSize: 24,
+    color: colors.primary.DEFAULT,
+    fontWeight: textStyles.button.fontWeight,
   },
 });

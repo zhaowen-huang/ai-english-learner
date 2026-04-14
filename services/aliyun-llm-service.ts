@@ -1,10 +1,6 @@
 import axios from 'axios';
 import { aiCacheService, AIContentType } from './ai-cache-service';
-
-// 阿里云 API 配置
-const API_KEY = 'sk-cd1ba98aecec49e4a61976e55c863965';
-const BASE_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1';
-const WANXIANG_URL = 'https://dashscope.aliyuncs.com/api/v1/services/aigc/text2image/image-synthesis';
+import { ALIYUN_API_KEY, ALIYUN_BASE_URL } from '@/constants/config';
 
 export interface WordDetail {
   word: string;
@@ -29,7 +25,7 @@ export const aliyunLLMService = {
       
       console.log('[LLM] 🔄 Cache miss, calling API for translateText');
       const response = await axios.post(
-        `${BASE_URL}/chat/completions`,
+        `${ALIYUN_BASE_URL}/chat/completions`,
         {
           model: 'qwen-flash',
           messages: [
@@ -47,7 +43,7 @@ export const aliyunLLMService = {
         },
         {
           headers: {
-            'Authorization': `Bearer ${API_KEY}`,
+            'Authorization': `Bearer ${ALIYUN_API_KEY}`,
             'Content-Type': 'application/json',
           }
         }
@@ -85,7 +81,7 @@ export const aliyunLLMService = {
       const sentencesText = sentences.map((s, i) => `${i + 1}. ${s}`).join('\n');
       
       const response = await axios.post(
-        `${BASE_URL}/chat/completions`,
+        `${ALIYUN_BASE_URL}/chat/completions`,
         {
           model: 'qwen-flash',
           messages: [
@@ -107,7 +103,7 @@ export const aliyunLLMService = {
         },
         {
           headers: {
-            'Authorization': `Bearer ${API_KEY}`,
+            'Authorization': `Bearer ${ALIYUN_API_KEY}`,
             'Content-Type': 'application/json',
           }
         }
@@ -149,7 +145,7 @@ export const aliyunLLMService = {
       
       console.log('[LLM] 🔄 Cache miss, calling API for getWordDetail');
       const response = await axios.post(
-        `${BASE_URL}/chat/completions`,
+        `${ALIYUN_BASE_URL}/chat/completions`,
         {
           model: 'qwen-flash',
           messages: [
@@ -186,7 +182,7 @@ export const aliyunLLMService = {
         },
         {
           headers: {
-            'Authorization': `Bearer ${API_KEY}`,
+            'Authorization': `Bearer ${ALIYUN_API_KEY}`,
             'Content-Type': 'application/json',
           }
         }
@@ -224,7 +220,7 @@ export const aliyunLLMService = {
       
       console.log('[LLM] 🔄 Cache miss, calling API for getWordDetailWithContext');
       const response = await axios.post(
-        `${BASE_URL}/chat/completions`,
+        `${ALIYUN_BASE_URL}/chat/completions`,
         {
           model: 'qwen-flash',
           messages: [
@@ -263,7 +259,7 @@ export const aliyunLLMService = {
         },
         {
           headers: {
-            'Authorization': `Bearer ${API_KEY}`,
+            'Authorization': `Bearer ${ALIYUN_API_KEY}`,
             'Content-Type': 'application/json',
           }
         }

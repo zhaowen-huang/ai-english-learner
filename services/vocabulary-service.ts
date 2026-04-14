@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import type { Vocabulary } from '@/types/vocabulary';
+import { isValidUUID } from '@/utils/validation';
 
 export const vocabularyService = {
   // 获取用户的所有生词
@@ -27,7 +28,7 @@ export const vocabularyService = {
     };
     
     // 只有 articleId 是有效的 UUID 时才添加
-    if (vocab.articleId && vocab.articleId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+    if (vocab.articleId && isValidUUID(vocab.articleId)) {
       insertData.article_id = vocab.articleId;
     }
     
@@ -101,8 +102,12 @@ export const vocabularyService = {
       .eq('word', word.toLowerCase())
       .single();
     
-    if (error) throw error;
-    return data as Vocabulary;
+    // PGRST116 表示没有找到记录，这是正常情况，返回 null
+    if (error && error.code !== 'PGRST116') {
+      throw error;
+    }
+    
+    return data as Vocabulary | null;
   },
 
   // 检查单词是否已在生词本中

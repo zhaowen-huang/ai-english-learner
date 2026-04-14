@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,55 +9,63 @@ import {
   ScrollView,
   Alert,
   StyleSheet,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/hooks/useAuth';
+import { validateRegister } from '@/utils/validation';
 
 export default function RegisterScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const { signUp } = useAuth();
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const { signUp, isLoading, error, clearError } = useAuth();
   const router = useRouter();
 
+  // 清除错误当用户开始输入
+  useEffect(() => {
+    if (validationError || error) {
+      setValidationError(null);
+      clearError();
+    }
+  }, [email, password, confirmPassword]);
+
   const handleRegister = async () => {
-    if (!email || !password || !confirmPassword) {
-      Alert.alert('错误', '请填写所有字段');
+    // 前端验证
+    const validation = validateRegister(email, password, confirmPassword);
+    if (!validation.isValid) {
+      setValidationError(validation.error || '验证失败');
       return;
     }
 
-    if (password !== confirmPassword) {
-      Alert.alert('错误', '两次输入的密码不一致');
-      return;
-    }
-
-    if (password.length < 6) {
-      Alert.alert('错误', '密码长度至少为6位');
-      return;
-    }
-
-    setIsLoading(true);
     try {
-      await signUp(email, password);
+      await signUp(email, password, confirmPassword);
       Alert.alert(
-        '注册成功',
-        '恭喜你！现在可以直接登录了',
-        [{ text: '去登录', onPress: () => router.replace('/auth/login') }]
+        '✅ 注册成功',
+        '欢迎加入 AI English Learner！',
+        [{ 
+          text: '开始学习', 
+          onPress: () => router.replace('/(tabs)') 
+        }]
       );
     } catch (error: any) {
-      Alert.alert('注册失败', error.message || '请稍后重试');
-    } finally {
-      setIsLoading(false);
+      Alert.alert('❌ 注册失败', error.message || '请稍后重试');
     }
   };
+
+  const isSubmitting = isLoading;
 
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent} 
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         {/* Logo区域 */}
         <View style={styles.header}>
           <View style={styles.logoContainer}>
@@ -69,61 +77,91 @@ export default function RegisterScreen() {
 
         {/* 表单区域 */}
         <View style={styles.form}>
+          {/* 邮箱输入 */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>邮箱</Text>
             <TextInput
-              style={styles.input}
+              style={[
+                styles.input,
+                validationError && styles.inputError,
+              ]}
               placeholder="请输入邮箱"
               placeholderTextColor="#8B8680"
               value={email}
               onChangeText={setEmail}
               autoCapitalize="none"
               keyboardType="email-address"
-              editable={!isLoading}
+              autoComplete="email"
+              editable={!isSubmitting}
+              returnKeyType="next"
             />
           </View>
 
+          {/* 密码输入 */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>密码</Text>
             <TextInput
-              style={styles.input}
+              style={[
+                styles.input,
+                validationError && styles.inputError,
+              ]}
               placeholder="请输入密码（至少6位）"
               placeholderTextColor="#8B8680"
               value={password}
               onChangeText={setPassword}
               secureTextEntry
-              editable={!isLoading}
+              editable={!isSubmitting}
+              autoComplete="password-new"
+              returnKeyType="next"
             />
           </View>
 
+          {/* 确认密码输入 */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>确认密码</Text>
             <TextInput
-              style={styles.input}
+              style={[
+                styles.input,
+                validationError && styles.inputError,
+              ]}
               placeholder="请再次输入密码"
               placeholderTextColor="#8B8680"
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               secureTextEntry
-              editable={!isLoading}
+              editable={!isSubmitting}
+              autoComplete="password-new"
+              returnKeyType="done"
+              onSubmitEditing={handleRegister}
             />
           </View>
 
+          {/* 验证错误提示 */}
+          {(validationError || error) && (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{validationError || error}</Text>
+            </View>
+          )}
+
+          {/* 注册按钮 */}
           <TouchableOpacity
-            style={[styles.registerButton, isLoading && styles.buttonDisabled]}
+            style={[styles.registerButton, isSubmitting && styles.buttonDisabled]}
             onPress={handleRegister}
-            disabled={isLoading}
+            disabled={isSubmitting}
             activeOpacity={0.8}
           >
-            <Text style={styles.registerButtonText}>
-              {isLoading ? '注册中...' : '注册'}
-            </Text>
+            {isSubmitting ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Text style={styles.registerButtonText}>注册</Text>
+            )}
           </TouchableOpacity>
 
+          {/* 登录链接 */}
           <TouchableOpacity
             style={styles.loginLink}
             onPress={() => router.replace('/auth/login' as any)}
-            disabled={isLoading}
+            disabled={isSubmitting}
           >
             <Text style={styles.loginText}>
               已有账户？<Text style={styles.loginHighlight}>立即登录</Text>
@@ -198,6 +236,22 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#2C2C2C',
   },
+  inputError: {
+    borderColor: '#E74C3C',
+    backgroundColor: '#FDF2F2',
+  },
+  errorContainer: {
+    backgroundColor: '#FDF2F2',
+    borderLeftWidth: 3,
+    borderLeftColor: '#E74C3C',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  errorText: {
+    fontSize: 14,
+    color: '#E74C3C',
+  },
   registerButton: {
     backgroundColor: '#C19A6B',
     borderRadius: 12,
@@ -209,6 +263,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 8,
     elevation: 4,
+    minHeight: 52,
+    justifyContent: 'center',
   },
   buttonDisabled: {
     opacity: 0.6,

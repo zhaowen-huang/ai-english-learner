@@ -19,6 +19,7 @@ import { useVocabularies, useToggleWordFavorite } from '@/hooks/use-vocabulary';
 import { vocabularyService } from '@/services/vocabulary-service';
 import { useAuthStore } from '@/store/auth-store';
 import Loading from '@/components/Loading';
+import { formatDate, estimateReadTime, cleanWord, extractContextSentence } from '@/utils/format';
 import type { WordDetail } from '@/services/aliyun-llm-service';
 
 type UnifiedArticle = {
@@ -52,7 +53,7 @@ export default function ArticleDetailScreen() {
   const [addingFavorite, setAddingFavorite] = useState(false);
 
   // Get word detail with context
-  const { data: wordDetail, isLoading: wordLoading } = useWordDetailWithContext(
+  const { data: wordDetail, isLoading: wordLoading, error: wordError, refetch: refetchWordDetail } = useWordDetailWithContext(
     selectedWord,
     contextSentence || null
   );
@@ -66,7 +67,8 @@ export default function ArticleDetailScreen() {
   // Check if word is already in vocabulary when popup opens
   useEffect(() => {
     if (selectedWord && vocabularies.length > 0) {
-      const exists = vocabularies.some(v => v.word === selectedWord.toLowerCase());
+      const cleanedWord = cleanWord(selectedWord);
+      const exists = vocabularies.some(v => v.word === cleanedWord);
       setIsFavorite(exists);
     }
   }, [selectedWord, vocabularies]);
@@ -94,35 +96,6 @@ export default function ArticleDetailScreen() {
     loadArticle();
   }, [id, source]);
 
-  const formatDate = (dateString: string): string => {
-    if (!dateString) return 'Unknown date';
-    
-    try {
-      if (dateString.includes('ago') || dateString.includes('minutes') || 
-          dateString.includes('hours') || dateString.includes('days')) {
-        return dateString;
-      }
-      
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) {
-        return dateString;
-      }
-      return date.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-      });
-    } catch (error) {
-      return dateString;
-    }
-  };
-
-  const estimateReadTime = (content: string): string => {
-    const wordCount = content.split(/\s+/).length;
-    const minutes = Math.ceil(wordCount / 200);
-    return `${minutes} min`;
-  };
-
   const openSourceUrl = async () => {
     if (article?.sourceUrl) {
       try {
@@ -136,21 +109,13 @@ export default function ArticleDetailScreen() {
     }
   };
 
-  // Find the sentence containing the word for context
-  const findContextSentence = (paragraph: string, word: string): string => {
-    const sentences = paragraph.split(/[.!?]+/);
-    const found = sentences.find(s => s.toLowerCase().includes(word.toLowerCase()));
-    return found ? found.trim() + '.' : '';
-  };
-
   const handleWordPress = (word: string, paragraph: string) => {
-    // 清理单词，移除标点符号
-    const cleanWord = word.replace(/[^a-zA-Z]/g, '').toLowerCase();
-    if (cleanWord.length >= 2) {
-      const sentence = findContextSentence(paragraph, cleanWord);
-      setSelectedWord(cleanWord);
+    const cleaned = cleanWord(word);
+    if (cleaned.length >= 2) {
+      const sentence = extractContextSentence(paragraph, cleaned);
+      setSelectedWord(cleaned);
       setContextSentence(sentence);
-      setIsFavorite(false); // Reset favorite state
+      setIsFavorite(false);
       setShowWordPopup(true);
     }
   };
@@ -428,9 +393,18 @@ export default function ArticleDetailScreen() {
                         </TouchableOpacity>
                       </View>
                     </>
-                  ) : (
-                    <Text style={styles.errorText}>Failed to load word detail</Text>
-                  )}
+                  ) : wordError ? (
+                    <View style={styles.errorContainer}>
+                      <Text style={styles.errorText}>加载失败</Text>
+                      <Text style={styles.errorHint}>点击重试</Text>
+                      <TouchableOpacity 
+                        style={styles.retryButton}
+                        onPress={() => refetchWordDetail()}
+                      >
+                        <Text style={styles.retryButtonText}>重试</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ) : null}
                 </View>
               </TouchableOpacity>
             </View>
@@ -643,6 +617,8 @@ const styles = StyleSheet.create({
     fontSize: 30,
     color: '#3C3C3C',
     lineHeight: 44,
+    textAlignVertical: 'center',
+    includeFontPadding: false,
     fontFamily: Platform.select({
       ios: 'Georgia',
       android: 'serif',
@@ -653,6 +629,8 @@ const styles = StyleSheet.create({
     fontSize: 30,
     color: '#3C3C3C',
     lineHeight: 44,
+    textAlignVertical: 'center',
+    includeFontPadding: false,
     marginBottom: 0,
     fontFamily: Platform.select({
       ios: 'Georgia',
@@ -796,6 +774,28 @@ const styles = StyleSheet.create({
     color: '#E74C3C',
     textAlign: 'center',
     marginTop: 16,
+  },
+  errorContainer: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  errorHint: {
+    fontSize: 13,
+    color: '#8B8680',
+    textAlign: 'center',
+    marginTop: 8,
+    marginBottom: 16,
+  },
+  retryButton: {
+    backgroundColor: '#C19A6B',
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '600',
   },
   tipContainer: {
     backgroundColor: '#F5F0EB',

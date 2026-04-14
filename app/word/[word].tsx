@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform } from '
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useVocabulary } from '@/hooks/use-vocabulary';
+import { useSpeech } from '@/hooks/use-speech';
+import { cleanWord } from '@/utils/format';
 import { Ionicons } from '@expo/vector-icons';
 import Loading from '@/components/Loading';
 
@@ -10,16 +12,29 @@ export default function WordDetailScreen() {
   const { word } = useLocalSearchParams();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { data: vocabulary, isLoading } = useVocabulary(word as string);
+  
+  // 清理单词，确保与数据库中存储的格式一致
+  const cleanedWord = word ? cleanWord(word as string) : undefined;
+  const { data: vocabulary, isLoading, error } = useVocabulary(cleanedWord);
+  const { speak, isSpeaking } = useSpeech();
+
+  const handleSpeak = () => {
+    if (vocabulary) {
+      speak(vocabulary.word);
+    }
+  };
 
   if (isLoading) {
     return <Loading />;
   }
 
-  if (!vocabulary) {
+  if (error || !vocabulary) {
+    console.log('Word detail error:', error);
     return (
       <View style={styles.container}>
-        <Text style={styles.errorText}>单词不存在</Text>
+        <Text style={styles.errorText}>
+          {!cleanedWord ? '无效的单词' : '该单词不在生词本中'}
+        </Text>
       </View>
     );
   }
@@ -37,7 +52,20 @@ export default function WordDetailScreen() {
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* 单词标题 */}
         <View style={styles.wordSection}>
-          <Text style={styles.word}>{vocabulary.word}</Text>
+          <View style={styles.wordHeader}>
+            <Text style={styles.word}>{vocabulary.word}</Text>
+            <TouchableOpacity 
+              style={[styles.speakButton, isSpeaking && styles.speakButtonActive]}
+              onPress={handleSpeak}
+              activeOpacity={0.7}
+            >
+              <Ionicons 
+                name={isSpeaking ? "volume-high" : "volume-medium"} 
+                size={28} 
+                color={isSpeaking ? "#C19A6B" : "#8B8680"} 
+              />
+            </TouchableOpacity>
+          </View>
           <Text style={styles.meaning}>{vocabulary.meaning}</Text>
         </View>
 
@@ -55,17 +83,26 @@ export default function WordDetailScreen() {
         )}
 
         {/* 来源信息 */}
-        {vocabulary.articleUrl && (
+        {(vocabulary.articleUrl || vocabulary.createdAt) && (
           <View style={styles.sourceSection}>
-            <Text style={styles.sectionLabel}>来源</Text>
-            <Text style={styles.sourceText}>{vocabulary.articleUrl}</Text>
-            <Text style={styles.dateText}>
-              {new Date(vocabulary.createdAt).toLocaleDateString('zh-CN', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-              })}
-            </Text>
+            {vocabulary.articleUrl && (
+              <>
+                <Text style={styles.sectionLabel}>来源</Text>
+                <Text style={styles.sourceText}>{vocabulary.articleUrl}</Text>
+              </>
+            )}
+            {vocabulary.createdAt && (
+              <View style={styles.addedTimeBadge}>
+                <Text style={styles.addedTimeIcon}>📅</Text>
+                <Text style={styles.addedTimeText}>
+                  加入于 {new Date(vocabulary.createdAt).toLocaleDateString('zh-CN', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })}
+                </Text>
+              </View>
+            )}
           </View>
         )}
 
@@ -122,16 +159,31 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 32,
   },
+  wordHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
   word: {
     fontSize: 42,
     fontWeight: '700',
     color: '#2C2C2C',
-    marginBottom: 12,
     fontFamily: Platform.select({
       ios: 'Georgia',
       android: 'serif',
       default: 'serif',
     }),
+    flex: 1,
+  },
+  speakButton: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: '#F5F3F0',
+    marginLeft: 12,
+  },
+  speakButtonActive: {
+    backgroundColor: '#E8E4DF',
   },
   meaning: {
     fontSize: 18,
@@ -178,9 +230,23 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     marginBottom: 8,
   },
-  dateText: {
+  addedTimeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5F3F0',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+    marginTop: 8,
+  },
+  addedTimeIcon: {
+    fontSize: 14,
+    marginRight: 6,
+  },
+  addedTimeText: {
     fontSize: 13,
-    color: '#A5A098',
+    color: '#8B8680',
+    fontWeight: '500',
   },
   statsSection: {
     marginBottom: 40,

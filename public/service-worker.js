@@ -35,6 +35,19 @@ self.addEventListener('activate', (event) => {
 
 // 拦截请求 - 使用 Stale-While-Revalidate 策略
 self.addEventListener('fetch', (event) => {
+  // 只缓存 GET 请求，忽略 POST/DELETE/PUT 等写操作
+  if (event.request.method !== 'GET') {
+    return;
+  }
+  
+  // 不缓存 API 请求（Supabase、Aliyun 等）
+  const url = new URL(event.request.url);
+  if (url.hostname.includes('supabase') || 
+      url.hostname.includes('aliyuncs') ||
+      url.hostname.includes('dashscope')) {
+    return;
+  }
+  
   event.respondWith(
     caches.match(event.request)
       .then((cachedResponse) => {

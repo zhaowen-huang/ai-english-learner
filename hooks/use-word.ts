@@ -26,6 +26,10 @@ export function useWordDetailWithContext(word: string | null, context: string | 
     enabled: !!word && word.length > 0,
     staleTime: cacheConfig.wordDetailWithContext.staleTime,
     gcTime: cacheConfig.wordDetailWithContext.gcTime,
+    retry: 1, // 失败时重试一次
+    onError: (error) => {
+      console.error('Failed to load word detail:', { word, error });
+    },
   });
 }
 
