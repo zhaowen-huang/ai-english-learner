@@ -63,38 +63,6 @@ function formatDate(dateString: string): string {
   }
 }
 
-// 清理文本，修复空格问题
-function cleanText(text: string): string {
-  if (!text) return text;
-  
-  let cleaned = text;
-  
-  // 1. 在标点符号后面添加空格（逗号、句号、分号、冒号）
-  // 例如: "diverging,according" -> "diverging, according"
-  cleaned = cleaned
-    // 逗号后加空格: ",word" -> ", word"
-    .replace(/,(\S)/g, ', $1')
-    // 句号后加空格（但不要破坏省略号 "..."）
-    .replace(/\.(?!\.)(\S)/g, '. $1')
-    // 分号后加空格
-    .replace(/;(\S)/g, '; $1')
-    // 冒号后加空格
-    .replace(/:(\S)/g, ': $1')
-    // 撇号后如果是字母则加空格（处理 "University'sannual" -> "University's annual"）
-    .replace(/'s(\S)/g, "'s $1");
-  
-  // 2. 在大小写字母之间添加空格（驼峰命名或连在一起的单词）
-  // 例如: "toStanford" -> "to Stanford", "likeStarcloudandAetherfluxthat" -> "like Starcloud and Aetherflux that"
-  cleaned = cleaned
-    // 小写字母后跟大写字母: "aA" -> "a A"
-    .replace(/([a-z])([A-Z])/g, '$1 $2');
-  
-  // 3. 清理多余的空格（将多个连续空格替换为单个空格）
-  cleaned = cleaned.replace(/\s{2,}/g, ' ').trim();
-  
-  return cleaned;
-}
-
 const categoryColors: Record<string, { bg: string; text: string }> = {
   'Science': { bg: '#E3F2FD', text: '#1976D2' },
   'Technology': { bg: '#F3E5F5', text: '#7B1FA2' },
@@ -823,8 +791,8 @@ ${article.content}
         <View style={styles.contentContainer}>
           <View style={styles.wordsContainer}>
               {(() => {
-                // 按段落分割内容，并清理文本（修复标点符号后的空格问题）
-                const paragraphs = cleanText(article.content).split(/\n+/).filter(p => p.trim());
+                // 按段落分割内容
+                const paragraphs = article.content.split(/\n+/).filter(p => p.trim());
                 
                 return paragraphs.map((paragraph, paraIdx) => {
                   const trimmed = paragraph.trim();
