@@ -64,13 +64,6 @@ export default function TabLayout() {
       }}
     >
       <Tabs.Screen
-        name="index"
-        options={{
-          title: '首页',
-          tabBarIcon: ({ focused }) => <TabIcon focused={focused} icon="🏠" />,
-        }}
-      />
-      <Tabs.Screen
         name="articles"
         options={{
           title: '文章',
@@ -83,20 +76,6 @@ export default function TabLayout() {
         options={{
           title: '生词本',
           tabBarIcon: ({ focused }) => <TabIcon focused={focused} icon="📝" />,
-        }}
-      />
-      <Tabs.Screen
-        name="ai-news"
-        options={{
-          title: 'AI新闻',
-          tabBarIcon: ({ focused }) => <TabIcon focused={focused} icon="🤖" />,
-        }}
-      />
-      <Tabs.Screen
-        name="stats"
-        options={{
-          title: '统计',
-          tabBarIcon: ({ focused }) => <TabIcon focused={focused} icon="📊" />,
         }}
       />
     </Tabs>
