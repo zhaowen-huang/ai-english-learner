@@ -35,6 +35,28 @@ interface SimpleWordExplanation {
   exampleSentences: string[];
 }
 
+// 安全的日期格式化函数
+function formatDate(dateString: string): string {
+  if (!dateString) return '未知日期';
+  
+  try {
+    const date = new Date(dateString);
+    // 检查日期是否有效
+    if (isNaN(date.getTime())) {
+      console.warn('[Date] Invalid date string:', dateString);
+      return '未知日期';
+    }
+    return date.toLocaleDateString('zh-CN', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+  } catch (error) {
+    console.error('[Date] Failed to parse date:', dateString, error);
+    return '未知日期';
+  }
+}
+
 const categoryColors: Record<string, { bg: string; text: string }> = {
   'Science': { bg: '#E3F2FD', text: '#1976D2' },
   'Technology': { bg: '#F3E5F5', text: '#7B1FA2' },
@@ -703,7 +725,7 @@ ${article.content}
             <View style={styles.metaItem}>
               <Text style={styles.metaIcon}>📅</Text>
               <Text style={styles.metaText}>
-                {new Date(article.publishedAt).toLocaleDateString('zh-CN')}
+                {formatDate(article.publishedAt)}
               </Text>
             </View>
             <View style={styles.metaItem}>
