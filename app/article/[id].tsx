@@ -40,11 +40,17 @@ function formatDate(dateString: string): string {
   if (!dateString) return '未知日期';
   
   try {
+    // 检查是否是相对时间格式（如 "50 minutes ago"）
+    if (dateString.includes('ago') || dateString.includes('minutes') || dateString.includes('hours') || dateString.includes('days')) {
+      return `更新于 ${dateString}`;
+    }
+    
     const date = new Date(dateString);
     // 检查日期是否有效
     if (isNaN(date.getTime())) {
       console.warn('[Date] Invalid date string:', dateString);
-      return '未知日期';
+      // 如果不是标准格式，直接显示原文
+      return dateString;
     }
     return date.toLocaleDateString('zh-CN', {
       year: 'numeric',
@@ -53,7 +59,7 @@ function formatDate(dateString: string): string {
     });
   } catch (error) {
     console.error('[Date] Failed to parse date:', dateString, error);
-    return '未知日期';
+    return dateString;
   }
 }
 
