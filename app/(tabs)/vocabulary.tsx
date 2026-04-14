@@ -55,46 +55,12 @@ export default function VocabularyScreen() {
     return <Loading />;
   }
 
-  const handleDelete = (vocab: Vocabulary) => {
-    console.log('🔔 handleDelete called for:', vocab.word, vocab.id);
-    
-    const doDelete = async () => {
-      console.log('✅ 用户确认删除，开始执行删除操作');
-      try {
-        console.log('📤 调用 deleteMutation.mutateAsync:', vocab.id);
-        await deleteMutation.mutateAsync(vocab.id);
-        console.log('✅ 删除成功，单词已从列表中移除');
-      } catch (error: any) {
-        console.error('❌ 删除失败:', error);
-        console.error('错误详情:', JSON.stringify(error, null, 2));
-        Alert.alert('删除失败', error?.message || '请稍后重试');
-      }
-    };
-    
-    // Web 端使用原生 confirm
-    if (typeof window !== 'undefined' && typeof window.confirm === 'function') {
-      const confirmed = window.confirm(`确定要删除 "${vocab.word}" 吗？`);
-      console.log('用户选择:', confirmed ? '确认' : '取消');
-      if (confirmed) {
-        // 使用 setTimeout 确保 confirm 对话框完全关闭后再执行
-        setTimeout(() => {
-          doDelete();
-        }, 100);
-      }
-    } else {
-      // 移动端使用 Alert
-      Alert.alert(
-        '删除单词',
-        `确定要删除 "${vocab.word}" 吗？`,
-        [
-          { text: '取消', style: 'cancel' },
-          { 
-            text: '删除', 
-            style: 'destructive',
-            onPress: doDelete
-          },
-        ]
-      );
+  const handleDelete = async (vocab: Vocabulary) => {
+    try {
+      await deleteMutation.mutateAsync(vocab.id);
+    } catch (error: any) {
+      console.error('删除失败:', error);
+      Alert.alert('删除失败', error?.message || '请稍后重试');
     }
   };
 
