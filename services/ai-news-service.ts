@@ -115,8 +115,13 @@ export const aiNewsService = {
     if (!url) return null;
     
     try {
+      console.log('[API] Fetching article detail:', url);
       const encodedUrl = encodeURIComponent(url);
       const detailUrl = `${TECHCRUNCH_AI_NEWS_API.baseUrl}/news/detail?url=${encodedUrl}`;
+      
+      // 添加超时控制
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒超时
       
       const response = await fetch(detailUrl, {
         method: 'GET',
@@ -124,20 +129,28 @@ export const aiNewsService = {
           'X-API-Key': TECHCRUNCH_AI_NEWS_API.apiKey,
           'Content-Type': 'application/json',
         },
+        signal: controller.signal,
       });
       
+      clearTimeout(timeoutId);
+      
       if (!response.ok) {
-        console.warn(`Failed to fetch article detail: ${response.status}`);
+        console.warn(`[API] Failed to fetch article detail: ${response.status}`);
         return null;
       }
       
       const data = await response.json();
+      console.log('[API] ✅ Article detail fetched:', data.content?.length || 0, 'chars');
       return {
         content: data.content || '',
         summary: data.summary || '',
       };
     } catch (error) {
-      console.error('Failed to fetch article detail:', error);
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.error('[API] ❌ Request timeout after 10s');
+      } else {
+        console.error('[API] ❌ Failed to fetch article detail:', error);
+      }
       return null;
     }
   },
