@@ -40,6 +40,53 @@ export const aiNewsService = {
     return null;
   },
   
+  // 生成文章朗读音频
+  async generateArticleAudio(articleUrl: string, voice: string = 'Katerina'): Promise<{
+    success: boolean;
+    audioFile?: string;
+    durationSeconds?: number;
+    audioSizeBytes?: number;
+    error?: string;
+  }> {
+    try {
+      console.log('🔊 Generating audio for article:', articleUrl);
+      
+      // 对 URL 进行编码
+      const encodedUrl = encodeURIComponent(articleUrl);
+      const url = `${TECHCRUNCH_AI_NEWS_API.baseUrl}/news/read?url=${encodedUrl}&voice=${voice}`;
+      
+      console.log('📡 Request URL:', url);
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'X-API-Key': TECHCRUNCH_AI_NEWS_API.apiKey,
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API request failed with status ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('✅ Audio generation response:', data);
+      
+      return {
+        success: data.success,
+        audioFile: data.audio_file,
+        durationSeconds: data.duration_seconds,
+        audioSizeBytes: data.audio_size_bytes,
+      };
+    } catch (error) {
+      console.error('❌ Failed to generate audio:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  },
+  
   // 获取 AI 新闻文章列表
   async fetchArticles(forceRefresh = false, maxArticles = 10): Promise<AINewsArticle[]> {
     // 如果已经有缓存且不强制刷新，直接返回缓存

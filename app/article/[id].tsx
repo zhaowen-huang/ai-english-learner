@@ -16,8 +16,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useWordDetailWithContext, useTranslateText } from '@/hooks/use-word';
 import { useVocabularies, useToggleWordFavorite } from '@/hooks/use-vocabulary';
-import { useSpeech } from '@/hooks/use-speech';
 import { vocabularyService } from '@/services/vocabulary-service';
+import { aiNewsService } from '@/services/ai-news-service';
 import { useAuthStore } from '@/store/auth-store';
 import Loading from '@/components/Loading';
 import { formatDate, estimateReadTime, cleanWord, extractContextSentence } from '@/utils/format';
@@ -53,11 +53,11 @@ export default function ArticleDetailScreen() {
   const [isFavorite, setIsFavorite] = useState(false);
   const [addingFavorite, setAddingFavorite] = useState(false);
 
-  // Speech synthesis for reading full article
-  const { speak: speakText, stop: stopSpeaking, isSpeaking } = useSpeech({
-    lang: 'en-US',
-    rate: 0.85,
-  });
+  // Audio playback state
+  const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Get word detail with context
   const { data: wordDetail, isLoading: wordLoading, error: wordError, refetch: refetchWordDetail } = useWordDetailWithContext(
@@ -157,21 +157,74 @@ export default function ArticleDetailScreen() {
     setShowTranslation(!showTranslation);
   };
 
-  const handleReadFullArticle = () => {
-    if (!article?.content) return;
+  const handleReadFullArticle = async () => {
+    if (!article?.sourceUrl) {
+      Alert.alert('提示', '该文章没有原文链接，无法生成音频');
+      return;
+    }
     
-    if (isSpeaking) {
-      // If already speaking, stop it
-      stopSpeaking();
-    } else {
-      // Clean up content for speech (remove extra whitespace and newlines)
-      const cleanContent = article.content
-        .split('\n\n')
-        .map(p => p.trim())
-        .filter(p => p.length > 0)
-        .join('. ');
+    // If already playing, stop it
+    if (isPlaying && audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      setIsPlaying(false);
+      return;
+    }
+    
+    // If audio already generated, play it
+    if (audioUrl) {
+      if (audioRef.current) {
+        audioRef.current.play();
+        setIsPlaying(true);
+      }
+      return;
+    }
+    
+    // Generate new audio
+    setIsGeneratingAudio(true);
+    try {
+      console.log('🔊 Starting audio generation...');
+      const result = await aiNewsService.generateArticleAudio(article.sourceUrl, 'Katerina');
       
-      speakText(cleanContent);
+      if (result.success && result.audioFile) {
+        // Construct the audio URL
+        const baseUrl = 'http://120.79.1.150:8000';
+        const fullAudioUrl = `${baseUrl}/audio/${result.audioFile}`;
+        
+        console.log('✅ Audio generated:', fullAudioUrl);
+        console.log('   Duration:', result.durationSeconds, 'seconds');
+        console.log('   Size:', result.audioSizeBytes, 'bytes');
+        
+        setAudioUrl(fullAudioUrl);
+        
+        // Create and play audio
+        const audio = new Audio(fullAudioUrl);
+        audioRef.current = audio;
+        
+        audio.onplay = () => setIsPlaying(true);
+        audio.onpause = () => setIsPlaying(false);
+        audio.onended = () => {
+          setIsPlaying(false);
+          audioRef.current = null;
+        };
+        audio.onerror = (e) => {
+          console.error('❌ Audio playback error:', e);
+          setIsPlaying(false);
+          Alert.alert('播放失败', '音频播放出错，请重试');
+        };
+        
+        await audio.play();
+      } else {
+        throw new Error(result.error || '生成音频失败');
+      }
+    } catch (error) {
+      console.error('❌ Failed to generate/play audio:', error);
+      Alert.alert(
+        '生成失败',
+        error instanceof Error ? error.message : '无法生成音频，请稍后重试'
+      );
+    } finally {
+      setIsGeneratingAudio(false);
     }
   };
 
@@ -257,11 +310,19 @@ export default function ArticleDetailScreen() {
         <View style={styles.navActions}>
           {/* Read Aloud Button */}
           <TouchableOpacity 
-            style={[styles.readAloudButton, isSpeaking && styles.readAloudButtonActive]}
+            style={[
+              styles.readAloudButton, 
+              (isPlaying || isGeneratingAudio) && styles.readAloudButtonActive,
+              isGeneratingAudio && styles.readAloudButtonDisabled
+            ]}
             onPress={handleReadFullArticle}
+            disabled={isGeneratingAudio}
           >
-            <Text style={[styles.readAloudButtonText, isSpeaking && styles.readAloudButtonTextActive]}>
-              {isSpeaking ? '⏹ 停止' : '🔊 朗读'}
+            <Text style={[
+              styles.readAloudButtonText, 
+              (isPlaying || isGeneratingAudio) && styles.readAloudButtonTextActive
+            ]}>
+              {isGeneratingAudio ? '⏳ 生成中...' : isPlaying ? '⏹ 停止' : '🔊 朗读'}
             </Text>
           </TouchableOpacity>
                     
@@ -517,6 +578,9 @@ const styles = StyleSheet.create({
   },
   readAloudButtonActive: {
     backgroundColor: '#C19A6B',
+  },
+  readAloudButtonDisabled: {
+    opacity: 0.6,
   },
   readAloudButtonText: {
     fontSize: 13,
