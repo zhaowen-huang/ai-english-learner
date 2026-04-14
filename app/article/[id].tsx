@@ -115,9 +115,12 @@ export default function ArticleDetailScreen() {
           if (storedArticle) {
             let articleData: AINewsArticle = JSON.parse(storedArticle);
             
-            // 如果文章内容不完整（只有摘要），尝试获取完整内容
-            if (!articleData.content || articleData.content.length < 200) {
-              console.log('[AI News] 📖 Article content incomplete, fetching full content...');
+            // 总是尝试获取完整内容（除非已经有完整的 content）
+            const hasFullContent = articleData.content && articleData.content.length > 500;
+            
+            if (!hasFullContent) {
+              console.log('[AI News] 📖 Fetching full article content...');
+              console.log('[AI News] Current content length:', articleData.content?.length || 0);
               
               // 设置一个超时，避免无限等待
               const fetchTimeout = new Promise((_, reject) => {
@@ -125,21 +128,21 @@ export default function ArticleDetailScreen() {
               });
               
               try {
-                //  race between fetch and timeout
+                // race between fetch and timeout
                 const detail = await Promise.race([
                   aiNewsService.fetchArticleDetail(articleData.sourceUrl),
                   fetchTimeout,
                 ]) as { content: string; summary: string } | null;
                 
-                if (detail) {
+                if (detail && detail.content) {
                   articleData = {
                     ...articleData,
-                    content: detail.content || articleData.content,
+                    content: detail.content,
                     summary: detail.summary || articleData.summary,
                   };
                   // 更新 AsyncStorage 中的文章
                   await AsyncStorage.setItem(`ai-news-${id}`, JSON.stringify(articleData));
-                  console.log('[AI News] ✅ Full content loaded:', detail.content?.length, 'chars');
+                  console.log('[AI News] ✅ Full content loaded:', detail.content.length, 'chars');
                 } else {
                   console.warn('[AI News] ⚠️ Could not fetch full content, using summary');
                 }
@@ -147,6 +150,8 @@ export default function ArticleDetailScreen() {
                 console.error('[AI News] ❌ Failed to fetch details:', fetchError);
                 // 即使获取详情失败，也继续显示文章（使用摘要）
               }
+            } else {
+              console.log('[AI News] ✅ Already has full content, skipping fetch');
             }
             
             setArticle(articleData);
