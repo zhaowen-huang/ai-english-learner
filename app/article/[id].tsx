@@ -16,6 +16,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useWordDetailWithContext, useTranslateText } from '@/hooks/use-word';
 import { useVocabularies, useToggleWordFavorite } from '@/hooks/use-vocabulary';
+import { useSpeech } from '@/hooks/use-speech';
 import { vocabularyService } from '@/services/vocabulary-service';
 import { useAuthStore } from '@/store/auth-store';
 import Loading from '@/components/Loading';
@@ -51,6 +52,12 @@ export default function ArticleDetailScreen() {
   const [showWordPopup, setShowWordPopup] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
   const [addingFavorite, setAddingFavorite] = useState(false);
+
+  // Speech synthesis for reading full article
+  const { speak: speakText, stop: stopSpeaking, isSpeaking } = useSpeech({
+    lang: 'en-US',
+    rate: 0.85,
+  });
 
   // Get word detail with context
   const { data: wordDetail, isLoading: wordLoading, error: wordError, refetch: refetchWordDetail } = useWordDetailWithContext(
@@ -150,6 +157,24 @@ export default function ArticleDetailScreen() {
     setShowTranslation(!showTranslation);
   };
 
+  const handleReadFullArticle = () => {
+    if (!article?.content) return;
+    
+    if (isSpeaking) {
+      // If already speaking, stop it
+      stopSpeaking();
+    } else {
+      // Clean up content for speech (remove extra whitespace and newlines)
+      const cleanContent = article.content
+        .split('\n\n')
+        .map(p => p.trim())
+        .filter(p => p.length > 0)
+        .join('. ');
+      
+      speakText(cleanContent);
+    }
+  };
+
   const renderContentWithWordClick = () => {
     if (!article?.content) return null;
     
@@ -230,6 +255,16 @@ export default function ArticleDetailScreen() {
         </TouchableOpacity>
         
         <View style={styles.navActions}>
+          {/* Read Aloud Button */}
+          <TouchableOpacity 
+            style={[styles.readAloudButton, isSpeaking && styles.readAloudButtonActive]}
+            onPress={handleReadFullArticle}
+          >
+            <Text style={[styles.readAloudButtonText, isSpeaking && styles.readAloudButtonTextActive]}>
+              {isSpeaking ? '⏹ 停止' : '🔊 朗读'}
+            </Text>
+          </TouchableOpacity>
+                    
           <TouchableOpacity 
             style={[styles.translateButton, showTranslation && styles.translateButtonActive]}
             onPress={toggleTranslation}
@@ -471,6 +506,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+  },
+  readAloudButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: '#C19A6B',
+  },
+  readAloudButtonActive: {
+    backgroundColor: '#C19A6B',
+  },
+  readAloudButtonText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#C19A6B',
+  },
+  readAloudButtonTextActive: {
+    color: '#FFFFFF',
   },
   translateButton: {
     paddingHorizontal: 16,
