@@ -6,6 +6,34 @@ import { useAINewsArticles } from '@/hooks';
 import { aiNewsService } from '@/services/ai-news-service';
 import type { AINewsArticle } from '@/services/ai-news-service';
 
+// 安全的日期格式化函数
+function formatDate(dateString: string): string {
+  if (!dateString) return '未知日期';
+  
+  try {
+    // 检查是否是相对时间格式（如 "50 minutes ago"）
+    if (dateString.includes('ago') || dateString.includes('minutes') || 
+        dateString.includes('hours') || dateString.includes('days')) {
+      return dateString;
+    }
+    
+    const date = new Date(dateString);
+    // 检查日期是否有效
+    if (isNaN(date.getTime())) {
+      console.warn('[Date] Invalid date string:', dateString);
+      return dateString;
+    }
+    return date.toLocaleDateString('zh-CN', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+  } catch (error) {
+    console.error('[Date] Failed to parse date:', dateString, error);
+    return dateString;
+  }
+}
+
 // 分类颜色映射
 const categoryColors: Record<string, { bg: string; text: string }> = {
   'AI': { bg: '#E3F2FD', text: '#1976D2' },
@@ -88,7 +116,7 @@ export default function ArticlesScreen() {
           {/* 底部信息 */}
           <View style={styles.footer}>
             <Text style={styles.date}>
-              {new Date(item.publishedAt).toLocaleDateString('zh-CN')}
+              {formatDate(item.publishedAt)}
             </Text>
           </View>
         </View>
