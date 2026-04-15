@@ -1,25 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/constants/config';
-
-// 检查是否在 Web 服务端渲染环境
-const isWebSSR = typeof window === 'undefined';
-
-// 在客户端环境中导入 AsyncStorage
-let AsyncStorage: any = undefined;
-if (!isWebSSR) {
-  try {
-    AsyncStorage = require('@react-native-async-storage/async-storage').default;
-  } catch (error) {
-    console.warn('AsyncStorage not available');
-  }
-}
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // 创建 Supabase 客户端
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
-    storage: isWebSSR ? undefined : AsyncStorage,
+    storage: AsyncStorage,
     autoRefreshToken: true,
-    persistSession: !isWebSSR,
+    persistSession: true,
     detectSessionInUrl: false,
     flowType: 'implicit', // 使用 implicit flow，无需邮件验证
   },

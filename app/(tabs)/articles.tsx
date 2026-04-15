@@ -11,6 +11,7 @@ import Card from '@/components/Card';
 import { formatDate, estimateReadTime } from '@/utils/format';
 import { colors, textStyles, borderRadius, spacing } from '@/theme';
 import type { AINewsArticle } from '@/services/ai-news-service';
+import { Newspaper } from 'lucide-react-native';
 
 // 统一的 Article 类型
 type UnifiedArticle = {
@@ -114,7 +115,8 @@ export default function ArticlesScreen() {
         }
         ListEmptyComponent={
           <EmptyState
-            icon="📰"
+            // @ts-ignore - lucide-react-native type definitions are incomplete
+            icon={<Newspaper size={16} stroke={colors.text.tertiary} />}
             title="暂无文章"
             description="下拉刷新获取最新文章"
           />
@@ -139,12 +141,12 @@ const styles = StyleSheet.create({
     marginBottom: spacing[3],
   },
   title: {
-    ...textStyles.h3,
+    ...textStyles.subHeadingSmall,
     color: colors.text.primary,
     marginBottom: spacing[3],
   },
   summary: {
-    ...textStyles.body,
+    ...textStyles.bodyStandard,
     color: colors.text.secondary,
     marginBottom: spacing[4],
     lineHeight: 24,
@@ -154,7 +156,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     borderTopWidth: 1,
-    borderTopColor: colors.neutral[100],
+    borderTopColor: colors.borderCream,
     paddingTop: spacing[3],
   },
   footerLeft: {
@@ -169,7 +171,7 @@ const styles = StyleSheet.create({
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: colors.neutral[400],
+    backgroundColor: colors.silver,
     marginHorizontal: spacing[2],
   },
   readTime: {

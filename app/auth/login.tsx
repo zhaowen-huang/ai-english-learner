@@ -167,7 +167,7 @@ const styles = StyleSheet.create({
     fontSize: 44,
   },
   title: {
-    ...textStyles.h2,
+    ...textStyles.subHeading,
     color: colors.text.primary,
     marginBottom: 8,
   },
@@ -179,23 +179,23 @@ const styles = StyleSheet.create({
     gap: 20,
   },
   errorContainer: {
-    backgroundColor: colors.error.lighter,
+    backgroundColor: '#f8f0f0',  // Light error background
     borderLeftWidth: 3,
-    borderLeftColor: colors.error.DEFAULT,
+    borderLeftColor: colors.error,
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: borderRadius.md,
   },
   errorText: {
     ...textStyles.bodySmall,
-    color: colors.error.DEFAULT,
+    color: colors.error,
   },
   registerLink: {
     alignItems: 'center',
     marginTop: 8,
   },
   registerText: {
-    ...textStyles.body,
+    ...textStyles.bodyStandard,
     color: colors.text.tertiary,
   },
   registerHighlight: {

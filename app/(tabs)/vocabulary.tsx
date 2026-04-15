@@ -10,6 +10,7 @@ import {
   Alert,
   Animated,
 } from 'react-native';
+import { Lock, BookOpen, FileEdit, Volume2, VolumeX, Trash2 } from 'lucide-react-native';
 import { useAuthStore } from '@/store/auth-store';
 import { useVocabularies, useDeleteVocabulary } from '@/hooks';
 import { useSpeech } from '@/hooks/use-speech';
@@ -36,7 +37,8 @@ export default function VocabularyScreen() {
     return (
       <View style={styles.container}>
         <EmptyState
-          icon="🔒"
+          // @ts-ignore - lucide-react-native type definitions are incomplete
+          icon={<Lock size={16} stroke={colors.text.tertiary} />}
           title="请先登录"
           description="登录后才能查看生词本"
           action={
@@ -120,7 +122,8 @@ export default function VocabularyScreen() {
       {/* 头部 */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Text style={styles.headerIcon}>📖</Text>
+          {/* @ts-ignore */}
+          <BookOpen size={24} stroke={colors.primary.DEFAULT} />
           <Text style={styles.headerTitle}>生词本</Text>
         </View>
         
@@ -150,7 +153,7 @@ export default function VocabularyScreen() {
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
-            <Text style={[styles.statNumber, { color: colors.success.DEFAULT }]}>{masteredCount}</Text>
+            <Text style={[styles.statNumber, { color: colors.success }]}>{masteredCount}</Text>
             <Text style={styles.statLabel}>已掌握</Text>
           </View>
         </View>
@@ -195,7 +198,8 @@ export default function VocabularyScreen() {
       <ScrollView style={styles.listContainer} showsVerticalScrollIndicator={false}>
         {allVocabularies.length === 0 ? (
           <EmptyState
-            icon="📝"
+            // @ts-ignore - lucide-react-native type definitions are incomplete
+            icon={<FileEdit size={16} stroke={colors.text.tertiary} />}
             title="暂无生词"
             description="在阅读文章时点击单词即可收藏到生词本"
           />
@@ -248,11 +252,20 @@ function VocabularyCard({
     speak(vocab.word);
   };
 
+  const selectedCardStyle = isSelectMode && isSelected ? {
+    borderWidth: 2,
+    borderColor: colors.primary.DEFAULT,
+    backgroundColor: colors.primary.lighter,
+  } : {};
+
   return (
     <Card
       onPress={onPress}
       padding={spacing[5]}
-      style={isSelectMode && isSelected ? [styles.vocabCard, styles.selectedCard] : styles.vocabCard}
+      style={{
+        ...styles.vocabCard,
+        ...selectedCardStyle,
+      }}
     >
       <View style={styles.cardHeader}>
         <View style={styles.cardHeaderLeft}>
@@ -277,9 +290,8 @@ function VocabularyCard({
               onPress={handleSpeak}
               activeOpacity={0.7}
             >
-              <Text style={styles.speakButtonText}>
-                {isSpeaking ? '🔊' : '🔉'}
-              </Text>
+              {/* @ts-ignore */}
+              {isSpeaking ? <VolumeX size={20} stroke={colors.primary.DEFAULT} /> : <Volume2 size={20} stroke={colors.text.secondary} />}
             </TouchableOpacity>
           )}
           {vocab.mastered && (
@@ -291,13 +303,12 @@ function VocabularyCard({
           <Pressable
             style={[styles.deleteButton, { zIndex: 20, position: 'relative' }]}
             onPress={(e) => {
-              console.log('🗑️ [DELETE] Pressable pressed');
               e?.stopPropagation?.();
-              console.log('🗑️ [DELETE] Calling onDelete for:', vocab.word);
               onDelete();
             }}
           >
-            <Text style={styles.deleteButtonText}>🗑️</Text>
+            {/* @ts-ignore */}
+            <Trash2 size={16} stroke={colors.error} />
           </Pressable>
         )}
       </View>
@@ -358,14 +369,14 @@ const styles = StyleSheet.create({
     marginRight: spacing[3],
   },
   headerTitle: {
-    ...textStyles.h1,
+    ...textStyles.sectionHeading,
     fontSize: 36,
   },
   selectModeButton: {
     paddingHorizontal: spacing[4],
     paddingVertical: spacing[2],
     borderRadius: borderRadius.md,
-    backgroundColor: colors.neutral[100],
+    backgroundColor: colors.sand,
   },
   selectModeButtonText: {
     ...textStyles.buttonSmall,
@@ -396,7 +407,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statNumber: {
-    ...textStyles.h3,
+    ...textStyles.subHeadingSmall,
     fontSize: 24,
     color: colors.text.primary,
   },
@@ -407,7 +418,7 @@ const styles = StyleSheet.create({
   },
   statDivider: {
     width: 1,
-    backgroundColor: colors.neutral[200],
+    backgroundColor: colors.borderWarm,
   },
   actionBar: {
     paddingHorizontal: spacing[6],
@@ -465,7 +476,7 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: borderRadius.sm,
     borderWidth: 2,
-    borderColor: colors.neutral[300],
+    borderColor: colors.silver,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -479,20 +490,18 @@ const styles = StyleSheet.create({
     fontWeight: textStyles.button.fontWeight,
   },
   cardWord: {
-    ...textStyles.h3,
+    ...textStyles.subHeadingSmall,
     fontSize: 22,
   },
   speakButton: {
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.sm,
-    backgroundColor: colors.neutral[100],
+    padding: 6,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.ivory,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   speakButtonActive: {
     backgroundColor: colors.primary.lighter,
-  },
-  speakButtonText: {
-    fontSize: 16,
   },
   deleteButton: {
     padding: spacing[2],
@@ -502,12 +511,12 @@ const styles = StyleSheet.create({
   },
   contextBox: {
     borderLeftWidth: 2,
-    borderLeftColor: colors.neutral[200],
+    borderLeftColor: colors.borderWarm,
     paddingLeft: spacing[3],
     marginBottom: spacing[3],
   },
   contextText: {
-    ...textStyles.body,
+    ...textStyles.bodyStandard,
     color: colors.text.secondary,
     fontStyle: 'italic',
   },
@@ -516,7 +525,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     borderTopWidth: 1,
-    borderTopColor: colors.neutral[100],
+    borderTopColor: colors.borderCream,
     paddingTop: spacing[3],
   },
   footerLeft: {
@@ -533,7 +542,7 @@ const styles = StyleSheet.create({
   dateBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.neutral[100],
+    backgroundColor: colors.sand,
     paddingHorizontal: spacing[2],
     paddingVertical: spacing[1],
     borderRadius: borderRadius.sm,

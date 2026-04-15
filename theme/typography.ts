@@ -1,33 +1,47 @@
 /**
- * 设计令牌 - 字体系统
+ * Typography System - Inspired by Claude (Anthropic)
+ * 
+ * Principles:
+ * - Serif for authority (headlines), Sans for utility (UI)
+ * - Single weight (500) for all serif headings
+ * - Relaxed body line-height (1.60) for literary reading experience
+ * - Tight-but-not-compressed headings (1.10-1.30)
  */
 
 import { Platform } from 'react-native';
 
-// 字体族
+// ==========================================
+// Font Families
+// ==========================================
+
+/**
+ * Anthropic Serif (fallback: Georgia)
+ * Used for ALL headlines and editorial content
+ * Weight 500 only - no bold, no light
+ */
 export const fontFamily = {
-  // 英文衬线字体（用于标题和正文）
+  // Headline font - Serif for authority
   serif: Platform.select({
     ios: 'Georgia',
     android: 'serif',
-    default: 'serif',
+    default: 'Georgia, serif',
   }),
 
-  // 英文无衬线字体（用于UI元素）
+  // UI font - Sans for utility
   sans: Platform.select({
     ios: 'System',
     android: 'sans-serif',
-    default: 'system-ui',
+    default: 'system-ui, -apple-system, sans-serif',
   }),
 
-  // 中文字体
+  // Chinese font
   chinese: Platform.select({
     ios: 'PingFang SC',
-    android: 'sans-serif',
+    android: 'Noto Sans SC, sans-serif',
     default: 'sans-serif',
   }),
 
-  // 等宽字体（用于代码）
+  // Code font - Mono strictly for code
   mono: Platform.select({
     ios: 'Menlo',
     android: 'monospace',
@@ -35,125 +49,331 @@ export const fontFamily = {
   }),
 };
 
-// 字号
+// ==========================================
+// Font Sizes (px)
+// Based on DESIGN.md hierarchy
+// ==========================================
+
 export const fontSize = {
-  xs: 11,
-  sm: 13,
-  base: 15,
-  md: 16,
-  lg: 18,
-  xl: 20,
-  '2xl': 22,
-  '3xl': 28,
-  '4xl': 36,
-  '5xl': 48,
+  // Display / Hero - Maximum impact, book-title presence
+  display: 64,        // 4rem
+  
+  // Section Heading - Feature section anchors
+  sectionHeading: 52, // 3.25rem
+  
+  // Sub-headings
+  subHeadingLarge: 36.8,  // ~2.3rem
+  subHeading: 32,         // 2rem
+  subHeadingSmall: 25.6,  // ~1.6rem
+  
+  // Feature Title
+  featureTitle: 20.8,  // 1.3rem
+  
+  // Body text
+  bodySerif: 17,       // 1.06rem - Serif body (editorial)
+  bodyLarge: 20,       // 1.25rem - Intro paragraphs
+  bodyStandard: 16,    // 1rem - Standard body, button text
+  bodySmall: 15,       // 0.94rem - Compact body
+  
+  // UI text
+  nav: 17,             // 1.06rem - Navigation links
+  caption: 14,         // 0.88rem - Metadata, descriptions
+  label: 12,           // 0.75rem - Badges, small labels
+  overline: 10,        // 0.63rem - Uppercase overline labels
+  micro: 9.6,          // 0.6rem - Smallest text
+  
+  // Code
+  code: 15,            // 0.94rem - Inline code, terminal
 };
 
-// 字重
+// ==========================================
+// Font Weights
+// IMPORTANT: All serif headings use weight 500 ONLY
+// ==========================================
+
 export const fontWeight = {
-  light: '300' as const,
-  normal: '400' as const,
-  medium: '500' as const,
+  regular: '400' as const,
+  medium: '500' as const,   // The ONLY weight for serif headings
   semibold: '600' as const,
-  bold: '700' as const,
 };
 
-// 行高
+// ==========================================
+// Line Heights
+// ==========================================
+
 export const lineHeight = {
-  tight: 1.2,
-  normal: 1.5,
-  relaxed: 1.75,
-  loose: 2,
+  // Tight headings - serif letterforms need breathing room
+  tight: 1.10,      // Display/Hero
+  tightNormal: 1.20, // Section/Sub-headings
+  normal: 1.30,     // Sub-heading small
+  
+  // Relaxed body - literary reading experience
+  relaxed: 1.60,    // Most body text (significantly more than typical 1.4-1.5)
+  
+  // Compact UI
+  compact: 1.00,    // Nav, compact UI
+  standard: 1.25,   // Standard UI
+  
+  // Special cases
+  caption: 1.43,    // Caption text
+  overline: 1.60,   // Overline labels
 };
 
-// 预定义的文本样式
+// ==========================================
+// Letter Spacing
+// ==========================================
+
+export const letterSpacing = {
+  normal: 0,
+  label: 0.12,      // 12px and below - maintain readability
+  overline: 0.5,    // Uppercase overline labels
+  code: -0.32,      // Inline code, terminal
+  micro: 0.096,     // Smallest text
+};
+
+// ==========================================
+// Pre-defined Text Styles
+// Following DESIGN.md hierarchy exactly
+// ==========================================
+
 export const textStyles = {
-  // 标题样式
-  h1: {
-    fontSize: fontSize['5xl'],
-    fontWeight: fontWeight.bold,
-    lineHeight: fontSize['5xl'] * lineHeight.tight,
+  // ===== HEADLINES (All Serif, Weight 500) =====
+  
+  /**
+   * Display / Hero
+   * Maximum impact, book-title presence
+   */
+  display: {
+    fontSize: fontSize.display,
+    fontWeight: fontWeight.medium,
+    lineHeight: fontSize.display * lineHeight.tight,
     fontFamily: fontFamily.serif,
+    letterSpacing: letterSpacing.normal,
   },
 
-  h2: {
-    fontSize: fontSize['3xl'],
-    fontWeight: fontWeight.bold,
-    lineHeight: fontSize['3xl'] * lineHeight.tight,
+  /**
+   * Section Heading
+   * Feature section anchors
+   */
+  sectionHeading: {
+    fontSize: fontSize.sectionHeading,
+    fontWeight: fontWeight.medium,
+    lineHeight: fontSize.sectionHeading * lineHeight.tightNormal,
     fontFamily: fontFamily.serif,
+    letterSpacing: letterSpacing.normal,
   },
 
-  h3: {
-    fontSize: fontSize['2xl'],
-    fontWeight: fontWeight.semibold,
-    lineHeight: fontSize['2xl'] * lineHeight.tight,
+  /**
+   * Sub-heading Large
+   */
+  subHeadingLarge: {
+    fontSize: fontSize.subHeadingLarge,
+    fontWeight: fontWeight.medium,
+    lineHeight: fontSize.subHeadingLarge * lineHeight.normal,
     fontFamily: fontFamily.serif,
+    letterSpacing: letterSpacing.normal,
   },
 
-  h4: {
-    fontSize: fontSize.xl,
-    fontWeight: fontWeight.semibold,
-    lineHeight: fontSize.xl * lineHeight.normal,
-    fontFamily: fontFamily.sans,
+  /**
+   * Sub-heading
+   * Card titles, feature names
+   */
+  subHeading: {
+    fontSize: fontSize.subHeading,
+    fontWeight: fontWeight.medium,
+    lineHeight: fontSize.subHeading * lineHeight.tight,
+    fontFamily: fontFamily.serif,
+    letterSpacing: letterSpacing.normal,
   },
 
-  // 正文字体样式
-  body: {
-    fontSize: fontSize.base,
-    fontWeight: fontWeight.normal,
-    lineHeight: fontSize.base * lineHeight.relaxed,
-    fontFamily: fontFamily.sans,
+  /**
+   * Sub-heading Small
+   */
+  subHeadingSmall: {
+    fontSize: fontSize.subHeadingSmall,
+    fontWeight: fontWeight.medium,
+    lineHeight: fontSize.subHeadingSmall * lineHeight.tightNormal,
+    fontFamily: fontFamily.serif,
+    letterSpacing: letterSpacing.normal,
   },
 
+  /**
+   * Feature Title
+   * Small feature headings
+   */
+  featureTitle: {
+    fontSize: fontSize.featureTitle,
+    fontWeight: fontWeight.medium,
+    lineHeight: fontSize.featureTitle * lineHeight.tightNormal,
+    fontFamily: fontFamily.serif,
+    letterSpacing: letterSpacing.normal,
+  },
+
+  // ===== BODY TEXT =====
+  
+  /**
+   * Body Serif
+   * Editorial passages - serif body text
+   */
+  bodySerif: {
+    fontSize: fontSize.bodySerif,
+    fontWeight: fontWeight.regular,
+    lineHeight: fontSize.bodySerif * lineHeight.relaxed,
+    fontFamily: fontFamily.serif,
+    letterSpacing: letterSpacing.normal,
+  },
+
+  /**
+   * Body Large
+   * Intro paragraphs
+   */
   bodyLarge: {
-    fontSize: fontSize.md,
-    fontWeight: fontWeight.normal,
-    lineHeight: fontSize.md * lineHeight.relaxed,
+    fontSize: fontSize.bodyLarge,
+    fontWeight: fontWeight.regular,
+    lineHeight: fontSize.bodyLarge * lineHeight.relaxed,
     fontFamily: fontFamily.sans,
+    letterSpacing: letterSpacing.normal,
   },
 
+  /**
+   * Body Standard
+   * Standard body, button text
+   */
+  bodyStandard: {
+    fontSize: fontSize.bodyStandard,
+    fontWeight: fontWeight.regular,
+    lineHeight: fontSize.bodyStandard * lineHeight.relaxed,
+    fontFamily: fontFamily.sans,
+    letterSpacing: letterSpacing.normal,
+  },
+
+  /**
+   * Body Small
+   * Compact body text
+   */
   bodySmall: {
-    fontSize: fontSize.sm,
-    fontWeight: fontWeight.normal,
-    lineHeight: fontSize.sm * lineHeight.normal,
+    fontSize: fontSize.bodySmall,
+    fontWeight: fontWeight.regular,
+    lineHeight: fontSize.bodySmall * lineHeight.standard,
     fontFamily: fontFamily.sans,
+    letterSpacing: letterSpacing.normal,
   },
 
-  // 文章段落样式
+  // ===== UI TEXT (All Sans) =====
+  
+  /**
+   * Navigation
+   * Navigation links, UI text
+   */
+  nav: {
+    fontSize: fontSize.nav,
+    fontWeight: fontWeight.medium,
+    lineHeight: fontSize.nav * lineHeight.compact,
+    fontFamily: fontFamily.sans,
+    letterSpacing: letterSpacing.normal,
+  },
+
+  /**
+   * Caption
+   * Metadata, descriptions
+   */
+  caption: {
+    fontSize: fontSize.caption,
+    fontWeight: fontWeight.regular,
+    lineHeight: fontSize.caption * lineHeight.caption,
+    fontFamily: fontFamily.sans,
+    letterSpacing: letterSpacing.normal,
+  },
+
+  /**
+   * Label
+   * Badges, small labels - with letter-spacing for readability
+   */
+  label: {
+    fontSize: fontSize.label,
+    fontWeight: fontWeight.medium,
+    lineHeight: fontSize.label * lineHeight.standard,
+    fontFamily: fontFamily.sans,
+    letterSpacing: letterSpacing.label,
+  },
+
+  /**
+   * Overline
+   * Uppercase overline labels
+   */
+  overline: {
+    fontSize: fontSize.overline,
+    fontWeight: fontWeight.regular,
+    lineHeight: fontSize.overline * lineHeight.overline,
+    fontFamily: fontFamily.sans,
+    letterSpacing: letterSpacing.overline,
+    textTransform: 'uppercase' as const,
+  },
+
+  /**
+   * Micro
+   * Smallest text
+   */
+  micro: {
+    fontSize: fontSize.micro,
+    fontWeight: fontWeight.regular,
+    lineHeight: fontSize.micro * lineHeight.relaxed,
+    fontFamily: fontFamily.sans,
+    letterSpacing: letterSpacing.micro,
+  },
+
+  // ===== CODE =====
+  
+  /**
+   * Code
+   * Inline code, terminal - strictly for code content
+   */
+  code: {
+    fontSize: fontSize.code,
+    fontWeight: fontWeight.regular,
+    lineHeight: fontSize.code * lineHeight.relaxed,
+    fontFamily: fontFamily.mono,
+    letterSpacing: letterSpacing.code,
+  },
+
+  // ===== BUTTON TEXT =====
+  
+  /**
+   * Button
+   * Standard button text
+   */
+  button: {
+    fontSize: fontSize.bodyStandard,
+    fontWeight: fontWeight.medium,
+    lineHeight: fontSize.bodyStandard * lineHeight.standard,
+    fontFamily: fontFamily.sans,
+    letterSpacing: letterSpacing.normal,
+  },
+
+  /**
+   * Button Small
+   * Compact button text
+   */
+  buttonSmall: {
+    fontSize: fontSize.bodySerif,
+    fontWeight: fontWeight.medium,
+    lineHeight: fontSize.bodySerif * lineHeight.standard,
+    fontFamily: fontFamily.sans,
+    letterSpacing: letterSpacing.normal,
+  },
+
+  // ===== ARTICLE SPECIFIC (Legacy Support) =====
+  
+  /**
+   * Article Paragraph
+   * For article content - using serif for literary feel
+   * Note: This is larger than standard body for better readability
+   */
   article: {
     fontSize: 30,
-    fontWeight: fontWeight.normal,
+    fontWeight: fontWeight.regular,
     lineHeight: 44,
     fontFamily: fontFamily.serif,
-  },
-
-  // 辅助文本样式
-  caption: {
-    fontSize: fontSize.xs,
-    fontWeight: fontWeight.medium,
-    lineHeight: fontSize.xs * lineHeight.normal,
-    fontFamily: fontFamily.sans,
-  },
-
-  label: {
-    fontSize: fontSize.sm,
-    fontWeight: fontWeight.semibold,
-    lineHeight: fontSize.sm * lineHeight.normal,
-    fontFamily: fontFamily.sans,
-  },
-
-  // 按钮文本样式
-  button: {
-    fontSize: fontSize.md,
-    fontWeight: fontWeight.semibold,
-    lineHeight: fontSize.md * lineHeight.normal,
-    fontFamily: fontFamily.sans,
-  },
-
-  buttonSmall: {
-    fontSize: fontSize.base,
-    fontWeight: fontWeight.semibold,
-    lineHeight: fontSize.base * lineHeight.normal,
-    fontFamily: fontFamily.sans,
+    letterSpacing: letterSpacing.normal,
   },
 };

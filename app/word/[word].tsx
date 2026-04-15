@@ -5,8 +5,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useVocabulary } from '@/hooks/use-vocabulary';
 import { useSpeech } from '@/hooks/use-speech';
 import { cleanWord } from '@/utils/format';
-import { Ionicons } from '@expo/vector-icons';
+import { Volume2, VolumeX, ArrowLeft } from 'lucide-react-native';
 import Loading from '@/components/Loading';
+import { colors } from '@/theme';
 
 export default function WordDetailScreen() {
   const { word } = useLocalSearchParams();
@@ -44,7 +45,8 @@ export default function WordDetailScreen() {
       {/* 顶部导航 */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="chevron-back" size={24} color="#2C2C2C" />
+          {/* @ts-ignore */}
+          <ArrowLeft size={24} stroke={colors.text.primary} />
           <Text style={styles.backText}>返回</Text>
         </TouchableOpacity>
       </View>
@@ -59,11 +61,8 @@ export default function WordDetailScreen() {
               onPress={handleSpeak}
               activeOpacity={0.7}
             >
-              <Ionicons 
-                name={isSpeaking ? "volume-high" : "volume-medium"} 
-                size={28} 
-                color={isSpeaking ? "#C19A6B" : "#8B8680"} 
-              />
+              {/* @ts-ignore */}
+              {isSpeaking ? <VolumeX size={20} stroke={colors.primary.DEFAULT} /> : <Volume2 size={20} stroke={colors.text.secondary} />}
             </TouchableOpacity>
           </View>
           <Text style={styles.meaning}>{vocabulary.meaning}</Text>
@@ -177,10 +176,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   speakButton: {
-    padding: 8,
+    padding: 6,
     borderRadius: 20,
-    backgroundColor: '#F5F3F0',
+    backgroundColor: colors.ivory,
     marginLeft: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   speakButtonActive: {
     backgroundColor: '#E8E4DF',

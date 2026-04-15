@@ -47,29 +47,29 @@ export default function Badge({
         baseStyle.borderColor = colors.primary.DEFAULT;
         break;
       case 'success':
-        baseStyle.backgroundColor = colors.success.lighter;
+        baseStyle.backgroundColor = '#d4e6d4';  // Light success background
         baseStyle.borderWidth = 1;
-        baseStyle.borderColor = colors.success.DEFAULT;
+        baseStyle.borderColor = colors.success;
         break;
       case 'error':
-        baseStyle.backgroundColor = colors.error.lighter;
+        baseStyle.backgroundColor = '#e6d4d4';  // Light error background
         baseStyle.borderWidth = 1;
-        baseStyle.borderColor = colors.error.DEFAULT;
+        baseStyle.borderColor = colors.error;
         break;
       case 'warning':
-        baseStyle.backgroundColor = colors.warning.lighter;
+        baseStyle.backgroundColor = '#f0e6d8';  // Light warning background
         baseStyle.borderWidth = 1;
-        baseStyle.borderColor = colors.warning.DEFAULT;
+        baseStyle.borderColor = colors.warning;
         break;
       case 'info':
-        baseStyle.backgroundColor = colors.info.lighter;
+        baseStyle.backgroundColor = '#d4e0f0';  // Light info background
         baseStyle.borderWidth = 1;
-        baseStyle.borderColor = colors.info.DEFAULT;
+        baseStyle.borderColor = colors.focusBlue;
         break;
       case 'neutral':
-        baseStyle.backgroundColor = colors.neutral[100];
+        baseStyle.backgroundColor = colors.sand;
         baseStyle.borderWidth = 1;
-        baseStyle.borderColor = colors.neutral[300];
+        baseStyle.borderColor = colors.silver;
         break;
     }
 
@@ -98,16 +98,16 @@ export default function Badge({
         baseStyle.color = colors.primary.darker;
         break;
       case 'success':
-        baseStyle.color = colors.success.dark;
+        baseStyle.color = '#4a6e4a';  // Dark success text
         break;
       case 'error':
-        baseStyle.color = colors.error.dark;
+        baseStyle.color = '#8a2a2a';  // Dark error text
         break;
       case 'warning':
-        baseStyle.color = colors.warning.dark;
+        baseStyle.color = '#a07850';  // Dark warning text
         break;
       case 'info':
-        baseStyle.color = colors.info.dark;
+        baseStyle.color = '#2a6aaa';  // Dark info text
         break;
       case 'neutral':
         baseStyle.color = colors.text.secondary;

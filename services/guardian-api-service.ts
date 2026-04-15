@@ -105,9 +105,8 @@ export const guardianApiService = {
     // 移除多余空格和制表符，但保留换行
     text = text.replace(/\s+/g, ' ').trim();
     
-    // 增加内容长度限制到 15000 字符以显示更多内容
-    if (text.length > 15000) {
-      text = text.substring(0, 15000) + '...';
+    if (text.length > 5000) {
+      text = text.substring(0, 5000) + '...';
     }
     
     return text;

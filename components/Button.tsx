@@ -69,12 +69,19 @@ export default function Button({
     switch (variant) {
       case 'primary':
         baseStyle.backgroundColor = colors.primary.DEFAULT;
+        // Add subtle ring shadow for primary button
         if (!isDisabled) {
-          Object.assign(baseStyle, shadows.primary);
+          Object.assign(baseStyle, {
+            shadowColor: colors.terracotta,
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.3,
+            shadowRadius: 4,
+            elevation: 3,
+          });
         }
         break;
       case 'secondary':
-        baseStyle.backgroundColor = colors.neutral[100];
+        baseStyle.backgroundColor = colors.sand;
         break;
       case 'outline':
         baseStyle.backgroundColor = 'transparent';
@@ -156,7 +163,14 @@ export default function Button({
       ) : (
         <>
           {leftIcon && <>{leftIcon}</>}
-          <Text style={[getTextStyle(), leftIcon && { marginLeft: 8 }, rightIcon && { marginRight: 8 }, textStyle]}>
+          <Text 
+            style={[
+              getTextStyle(), 
+              leftIcon ? { marginLeft: 8 } : {}, 
+              rightIcon ? { marginRight: 8 } : {}, 
+              textStyle
+            ]}
+          >
             {title}
           </Text>
           {rightIcon && <>{rightIcon}</>}

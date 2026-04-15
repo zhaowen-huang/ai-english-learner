@@ -16,12 +16,15 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useWordDetailWithContext, useTranslateText } from '@/hooks/use-word';
 import { useVocabularies, useToggleWordFavorite } from '@/hooks/use-vocabulary';
+import { useSpeech } from '@/hooks/use-speech';
 import { vocabularyService } from '@/services/vocabulary-service';
-import { aiNewsService } from '@/services/ai-news-service';
+import { articleAudioService } from '@/services/article-audio-service';
 import { useAuthStore } from '@/store/auth-store';
 import Loading from '@/components/Loading';
 import { formatDate, estimateReadTime, cleanWord, extractContextSentence } from '@/utils/format';
 import type { WordDetail } from '@/services/aliyun-llm-service';
+import { BookmarkPlus, BookmarkCheck, Check, X, AlertCircle, ArrowLeft, Volume2, Play, Pause, Loader } from 'lucide-react-native';
+import { colors } from '@/theme';
 
 type UnifiedArticle = {
   id: string;
@@ -53,10 +56,16 @@ export default function ArticleDetailScreen() {
   const [isFavorite, setIsFavorite] = useState(false);
   const [addingFavorite, setAddingFavorite] = useState(false);
 
+  // Speech synthesis for reading full article
+  const { speak: speakText, stop: stopSpeaking, isSpeaking } = useSpeech({
+    lang: 'en-US',
+    rate: 0.85,
+  });
+
   // Audio playback state
-  const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
+  const [audioDuration, setAudioDuration] = useState<number | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Get word detail with context
@@ -144,10 +153,10 @@ export default function ArticleDetailScreen() {
       });
       
       setIsFavorite(true);
-      Alert.alert('✅ 成功', `已添加 "${selectedWord}" 到生词本`);
+      Alert.alert('成功', `已添加 "${selectedWord}" 到生词本`);
     } catch (error) {
       console.error('Failed to add to favorites:', error);
-      Alert.alert('❌ 失败', '添加到生词本失败');
+      Alert.alert('失败', '添加到生词本失败');
     } finally {
       setAddingFavorite(false);
     }
@@ -158,71 +167,138 @@ export default function ArticleDetailScreen() {
   };
 
   const handleReadFullArticle = async () => {
-    if (!article?.sourceUrl) {
-      Alert.alert('提示', '该文章没有原文链接，无法生成音频');
-      return;
-    }
+    if (!article?.content) return;
     
-    // If already playing, stop it
-    if (isPlaying && audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-      setIsPlaying(false);
-      return;
-    }
-    
-    // If audio already generated, play it
-    if (audioUrl) {
-      if (audioRef.current) {
+    // If we already have generated audio, play/pause it
+    if (audioUrl && audioRef.current) {
+      if (audioRef.current.paused) {
         audioRef.current.play();
-        setIsPlaying(true);
+      } else {
+        audioRef.current.pause();
       }
       return;
     }
     
-    // Generate new audio
+    // If currently generating, do nothing
+    if (isGeneratingAudio) return;
+    
+    // If no source URL, fallback to browser speech
+    if (!article.sourceUrl) {
+      if (isSpeaking) {
+        stopSpeaking();
+      } else {
+        const cleanContent = article.content
+          .split('\n\n')
+          .map(p => p.trim())
+          .filter(p => p.length > 0)
+          .join('. ');
+        speakText(cleanContent);
+      }
+      return;
+    }
+    
+    // Generate audio from API
     setIsGeneratingAudio(true);
     try {
-      console.log('🔊 Starting audio generation...');
-      const result = await aiNewsService.generateArticleAudio(article.sourceUrl, 'Katerina');
+      const result = await articleAudioService.generateArticleAudio(article.sourceUrl);
       
-      if (result.success && result.audioFile) {
-        // Construct the audio URL
-        const baseUrl = 'http://120.79.1.150:8000';
-        const fullAudioUrl = `${baseUrl}/audio/${result.audioFile}`;
+      if (result.success && result.audio_file) {
+        const url = articleAudioService.getAudioUrl(result.audio_file);
+        console.log('[ArticlePage] Attempting to play audio from:', url);
+        setAudioUrl(url);
+        setAudioDuration(result.duration_seconds || null);
         
-        console.log('✅ Audio generated:', fullAudioUrl);
-        console.log('   Duration:', result.durationSeconds, 'seconds');
-        console.log('   Size:', result.audioSizeBytes, 'bytes');
+        // 先通过 fetch 下载音频为 blob，绕过 HTTP/HTTPS 混合内容问题
+        console.log('[ArticlePage] Downloading audio as blob to bypass mixed content...');
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'X-API-Key': 'sk-default-key-for-testing',
+          },
+          mode: 'cors',
+        });
         
-        setAudioUrl(fullAudioUrl);
+        if (!response.ok) {
+          throw new Error(`Failed to download audio: ${response.status}`);
+        }
         
-        // Create and play audio
-        const audio = new Audio(fullAudioUrl);
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        console.log('[ArticlePage] Audio downloaded as blob, size:', blob.size, 'bytes');
+        
+        // Create and play audio from blob URL
+        const audio = new Audio();
         audioRef.current = audio;
+        audio.src = blobUrl;
+        audio.preload = 'auto';
         
-        audio.onplay = () => setIsPlaying(true);
-        audio.onpause = () => setIsPlaying(false);
-        audio.onended = () => {
-          setIsPlaying(false);
-          audioRef.current = null;
+        // 监听加载事件
+        audio.oncanplaythrough = () => {
+          console.log('[ArticlePage] ✅ Audio loaded successfully from blob, starting playback');
+          audio.play().catch(playError => {
+            console.error('[ArticlePage] ❌ Play failed:', playError);
+            Alert.alert('播放失败', '无法播放音频: ' + playError.message);
+            setAudioUrl(null);
+            audioRef.current = null;
+            URL.revokeObjectURL(blobUrl);
+          });
         };
+        
+        audio.onloadeddata = () => {
+          console.log('[ArticlePage] Audio data loaded from blob');
+        };
+        
         audio.onerror = (e) => {
-          console.error('❌ Audio playback error:', e);
-          setIsPlaying(false);
-          Alert.alert('播放失败', '音频播放出错，请重试');
+          console.error('[ArticlePage] ❌ Audio error event:', e);
+          console.error('[ArticlePage] Audio error code:', audio.error?.code);
+          console.error('[ArticlePage] Audio error message:', audio.error?.message);
+          console.error('[ArticlePage] Audio networkState:', audio.networkState);
+          console.error('[ArticlePage] Audio readyState:', audio.readyState);
+          
+          // 根据错误代码提供更详细的提示
+          let errorMessage = '无法加载音频文件';
+          if (audio.error) {
+            switch (audio.error.code) {
+              case MediaError.MEDIA_ERR_ABORTED:
+                errorMessage = '音频加载被中止';
+                break;
+              case MediaError.MEDIA_ERR_NETWORK:
+                errorMessage = '网络错误，无法加载音频（可能是跨域问题）';
+                break;
+              case MediaError.MEDIA_ERR_DECODE:
+                errorMessage = '音频解码失败，文件格式可能不支持';
+                break;
+              case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
+                errorMessage = '音频源不支持（HTTP/HTTPS 混合内容或 CORS 问题）';
+                break;
+            }
+          }
+          
+          Alert.alert(
+            '加载失败', 
+            `${errorMessage}\n\n` +
+            `原因：服务器未配置 CORS 响应头\n\n` +
+            `解决方案：请在服务器上添加 CORS 配置，允许跨域访问音频文件`  );
+          setAudioUrl(null);
+          audioRef.current = null;
+          URL.revokeObjectURL(blobUrl);
         };
         
-        await audio.play();
+        audio.onended = () => {
+          console.log('[ArticlePage] ✅ Audio playback ended');
+          setAudioUrl(null);
+          audioRef.current = null;
+          URL.revokeObjectURL(blobUrl);
+        };
+        
+        // 开始加载
+        audio.load();
       } else {
-        throw new Error(result.error || '生成音频失败');
+        throw new Error(result.message || '生成音频失败');
       }
-    } catch (error) {
-      console.error('❌ Failed to generate/play audio:', error);
-      Alert.alert(
-        '生成失败',
-        error instanceof Error ? error.message : '无法生成音频，请稍后重试'
-      );
+    } catch (error: any) {
+      console.error('[ArticlePage] Failed to generate audio:', error);
+      Alert.alert('生成失败', error?.message || '无法生成音频，请检查网络连接');
     } finally {
       setIsGeneratingAudio(false);
     }
@@ -312,18 +388,35 @@ export default function ArticleDetailScreen() {
           <TouchableOpacity 
             style={[
               styles.readAloudButton, 
-              (isPlaying || isGeneratingAudio) && styles.readAloudButtonActive,
+              (isSpeaking || (audioUrl && audioRef.current && !audioRef.current.paused)) && styles.readAloudButtonActive,
               isGeneratingAudio && styles.readAloudButtonDisabled
             ]}
             onPress={handleReadFullArticle}
             disabled={isGeneratingAudio}
           >
-            <Text style={[
-              styles.readAloudButtonText, 
-              (isPlaying || isGeneratingAudio) && styles.readAloudButtonTextActive
-            ]}>
-              {isGeneratingAudio ? '⏳ 生成中...' : isPlaying ? '⏹ 停止' : '🔊 朗读'}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              {isGeneratingAudio ? (
+                <> {/* @ts-ignore */}
+                <Loader size={16} stroke={colors.text.secondary} />
+                <Text style={styles.readAloudButtonText}>生成中...</Text>
+                </>
+              ) : (audioUrl && audioRef.current && !audioRef.current.paused) ? (
+                <> {/* @ts-ignore */}
+                <Pause size={16} stroke={colors.primary.DEFAULT} />
+                <Text style={styles.readAloudButtonText}>暂停</Text>
+                </>
+              ) : (isSpeaking || (audioUrl && audioRef.current)) ? (
+                <> {/* @ts-ignore */}
+                <Play size={16} stroke={colors.primary.DEFAULT} />
+                <Text style={styles.readAloudButtonText}>继续</Text>
+                </>
+              ) : (
+                <> {/* @ts-ignore */}
+                <Volume2 size={16} stroke={colors.primary.DEFAULT} />
+                <Text style={styles.readAloudButtonText}>朗读</Text>
+                </>
+              )}
+            </View>
           </TouchableOpacity>
                     
           <TouchableOpacity 
@@ -472,12 +565,16 @@ export default function ArticleDetailScreen() {
                           {addingFavorite ? (
                             <ActivityIndicator size="small" color={isFavorite ? '#C19A6B' : '#FAF8F5'} />
                           ) : (
-                            <Text style={[
-                              styles.favoriteButtonText,
-                              isFavorite && styles.favoriteButtonTextActive
-                            ]}>
-                              {isFavorite ? '✓ 已添加' : '📝 添加到生词本'}
-                            </Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                              {/* @ts-ignore */}
+                              {isFavorite ? <BookmarkCheck size={16} stroke={isFavorite ? '#C19A6B' : '#FAF8F5'} /> : <BookmarkPlus size={16} stroke={isFavorite ? '#C19A6B' : '#FAF8F5'} />}
+                              <Text style={[
+                                styles.favoriteButtonText,
+                                isFavorite && styles.favoriteButtonTextActive
+                              ]}>
+                                {isFavorite ? '已添加' : '添加到生词本'}
+                              </Text>
+                            </View>
                           )}
                         </TouchableOpacity>
                         
@@ -579,9 +676,6 @@ const styles = StyleSheet.create({
   readAloudButtonActive: {
     backgroundColor: '#C19A6B',
   },
-  readAloudButtonDisabled: {
-    opacity: 0.6,
-  },
   readAloudButtonText: {
     fontSize: 13,
     fontWeight: '500',
@@ -589,6 +683,12 @@ const styles = StyleSheet.create({
   },
   readAloudButtonTextActive: {
     color: '#FFFFFF',
+  },
+  readAloudButtonDisabled: {
+    opacity: 0.5,
+  },
+  readAloudButtonTextDisabled: {
+    color: '#999',
   },
   translateButton: {
     paddingHorizontal: 16,

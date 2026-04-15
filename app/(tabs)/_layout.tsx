@@ -1,25 +1,24 @@
 import { Tabs } from 'expo-router';
-import { View, Text, Platform, StyleSheet } from 'react-native';
+import { View, Platform, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BookOpen, Bookmark } from 'lucide-react-native';
 import { colors, textStyles, shadows } from '@/theme';
 
 const tabItems = [
   { name: 'articles', label: '看新闻', icon: 'book-open' },
   { name: 'vocabulary', label: '生词本', icon: 'bookmark' },
-  { name: 'review', label: '背单词', icon: 'zap' },
 ] as const;
 
 function TabIcon({ focused, icon }: { focused: boolean; icon: string }) {
-  // 简单的图标映射 - 使用emoji作为临时方案
-  const iconMap: Record<string, string> = {
-    'book-open': '📖',
-    'bookmark': '📚',
-    'zap': '⚡',
-  };
-
+  const IconComponent = icon === 'book-open' ? BookOpen : Bookmark;
+  
   return (
     <View style={styles.iconContainer}>
-      <Text style={{ fontSize: 22 }}>{iconMap[icon] || '📄'}</Text>
+      {/* @ts-ignore */}
+      <IconComponent 
+        size={24} 
+        color={focused ? colors.primary.DEFAULT : colors.text.tertiary} 
+      />
     </View>
   );
 }
@@ -72,15 +71,6 @@ export default function TabLayout() {
           title: '生词本',
           tabBarIcon: ({ focused }) => (
             <TabIcon focused={focused} icon="bookmark" />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="review"
-        options={{
-          title: '背单词',
-          tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon="zap" />
           ),
         }}
       />

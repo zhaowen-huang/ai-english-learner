@@ -1,21 +1,40 @@
 /**
- * 主题系统 - 统一导出
+ * Theme System - Unified Export
+ * Inspired by Claude (Anthropic) Design System
  */
 
 export { colors } from './colors';
-export { fontFamily, fontSize, fontWeight, lineHeight, textStyles } from './typography';
-export { shadows, borderRadius, spacing, animationDuration, zIndex } from './shadows';
+export { 
+  fontFamily, 
+  fontSize, 
+  fontWeight, 
+  lineHeight, 
+  letterSpacing,
+  textStyles 
+} from './typography';
+export { 
+  shadows, 
+  createRingShadow,
+  borderRadius, 
+  spacing, 
+  animationDuration, 
+  zIndex 
+} from './shadows';
 
-// 便捷的工具函数
+// ==========================================
+// Utility Functions
+// ==========================================
+
 import { colors } from './colors';
-import { shadows } from './shadows';
-import { borderRadius } from './shadows';
+import { shadows, createRingShadow, borderRadius } from './shadows';
+import { Platform } from 'react-native';
 
 /**
- * 获取平台特定的样式（处理 iOS 和 Android 的阴影差异）
+ * Get platform-specific shadow styles
+ * Handles iOS vs Android shadow differences
  */
-export function getPlatformShadow(shadow: typeof shadows.md) {
-  if (shadow === shadows.none) {
+export function getPlatformShadow(shadow: any) {
+  if (!shadow || shadow === shadows.flat) {
     return {};
   }
   
@@ -23,64 +42,196 @@ export function getPlatformShadow(shadow: typeof shadows.md) {
 }
 
 /**
- * 创建卡片样式
+ * Create card style following Claude's design principles
+ * - Ivory or White background
+ * - Border Cream border (1px)
+ * - Comfortably rounded corners (8px)
+ * - Optional whisper shadow for elevation
  */
 export function createCardStyle(options?: {
   padding?: number;
   rounded?: keyof typeof borderRadius;
-  shadow?: keyof typeof shadows;
+  elevated?: boolean;
+  variant?: 'default' | 'featured' | 'hero';
 }) {
   const { 
-    padding = 16, 
-    rounded = 'lg', 
-    shadow = 'md' 
+    padding = 24, 
+    rounded = 'comfortable',
+    elevated = false,
+    variant = 'default'
   } = options || {};
 
+  // Determine background and border based on variant
+  let backgroundColor: string = colors.ivory;
+  let borderColor = colors.borderCream;
+  let radius = borderRadius[rounded];
+  let shadowStyle = {};
+
+  if (variant === 'featured') {
+    radius = borderRadius.veryRounded; // 16px
+    if (elevated) {
+      shadowStyle = shadows.whisper;
+    }
+  } else if (variant === 'hero') {
+    radius = borderRadius.maximum; // 32px
+    backgroundColor = colors.white;
+  } else {
+    // Default variant
+    if (elevated) {
+      shadowStyle = shadows.contained;
+    }
+  }
+
   return {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius[rounded],
+    backgroundColor,
+    borderRadius: radius,
     padding,
-    ...shadows[shadow],
+    borderWidth: 1,
+    borderColor,
+    ...shadowStyle,
   };
 }
 
 /**
- * 创建按钮样式
+ * Create button style following Claude's design principles
+ * 
+ * Variants:
+ * - brand: Terracotta background (#c96442) - Primary CTA
+ * - sand: Warm Sand background (#e8e6dc) - Secondary
+ * - white: Pure White background - Elevated on light surfaces
+ * - dark: Dark Surface background (#30302e) - Dark theme
+ * - outline: Transparent with border
  */
-export function createButtonStyle(variant: 'primary' | 'secondary' | 'outline' | 'ghost') {
+export function createButtonStyle(
+  variant: 'brand' | 'sand' | 'white' | 'dark' | 'outline',
+  size: 'sm' | 'md' | 'lg' = 'md'
+) {
+  // Size presets
+  const sizePresets = {
+    sm: {
+      paddingVertical: 8,
+      paddingHorizontal: 12,
+      fontSize: 15,
+    },
+    md: {
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+      fontSize: 16,
+    },
+    lg: {
+      paddingVertical: 16,
+      paddingHorizontal: 24,
+      fontSize: 17,
+    },
+  };
+
+  const sizeStyle = sizePresets[size];
   const baseStyle = {
-    borderRadius: borderRadius.lg,
-    paddingVertical: 14,
-    paddingHorizontal: 24,
+    borderRadius: borderRadius.generous, // 12px
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
+    ...sizeStyle,
   };
 
   switch (variant) {
-    case 'primary':
+    case 'brand':
+      // Terracotta Brand button - Primary CTA
       return {
         ...baseStyle,
-        backgroundColor: colors.primary.DEFAULT,
-        ...shadows.primary,
+        backgroundColor: colors.terracotta,
+        ...createRingShadow(colors.terracotta, 1),
       };
-    case 'secondary':
+    
+    case 'sand':
+      // Warm Sand button - Secondary
+      // Asymmetric padding: 0px 12px 0px 8px (icon-first layout)
       return {
         ...baseStyle,
-        backgroundColor: colors.neutral[100],
+        backgroundColor: colors.sand,
+        paddingLeft: 8,
+        paddingRight: 12,
+        ...createRingShadow(colors.ringWarm, 1),
       };
+    
+    case 'white':
+      // White Surface button - Clean, elevated
+      return {
+        ...baseStyle,
+        backgroundColor: colors.white,
+        borderWidth: 1,
+        borderColor: colors.borderCream,
+      };
+    
+    case 'dark':
+      // Dark Charcoal button - For dark theme surfaces
+      return {
+        ...baseStyle,
+        backgroundColor: colors.darkSurface,
+        ...createRingShadow(colors.borderDark, 1),
+      };
+    
     case 'outline':
+      // Outline button - Minimal
       return {
         ...baseStyle,
         backgroundColor: 'transparent',
         borderWidth: 1,
-        borderColor: colors.primary.DEFAULT,
+        borderColor: colors.borderWarm,
       };
-    case 'ghost':
-      return {
-        ...baseStyle,
-        backgroundColor: 'transparent',
-      };
+    
     default:
       return baseStyle;
   }
+}
+
+/**
+ * Create input field style
+ * - Generously rounded (12px)
+ * - Compact vertical padding
+ * - Focus ring with Focus Blue (accessibility)
+ */
+export function createInputStyle(state: 'default' | 'focused' | 'error' = 'default') {
+  const baseStyle = {
+    borderRadius: borderRadius.generous, // 12px
+    paddingHorizontal: 12,
+    paddingVertical: 1.6, // Very compact vertical
+    backgroundColor: colors.white,
+    borderWidth: 1,
+  };
+
+  switch (state) {
+    case 'focused':
+      return {
+        ...baseStyle,
+        borderColor: colors.focusBlue, // The ONLY cool color
+      };
+    
+    case 'error':
+      return {
+        ...baseStyle,
+        borderColor: colors.error,
+      };
+    
+    default:
+      return {
+        ...baseStyle,
+        borderColor: colors.borderCream,
+      };
+  }
+}
+
+/**
+ * Get text color based on hierarchy
+ */
+export function getTextColor(hierarchy: 'primary' | 'secondary' | 'tertiary' | 'disabled') {
+  return colors.text[hierarchy];
+}
+
+/**
+ * Check if a color is warm-toned (Claude principle)
+ * Returns false for cool colors like Focus Blue
+ */
+export function isWarmColor(color: string): boolean {
+  const coolColors: string[] = [colors.focusBlue];
+  return !coolColors.includes(color);
 }

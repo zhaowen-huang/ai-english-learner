@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { colors, textStyles } from '@/theme';
 
 interface EmptyStateProps {
-  icon?: string;
+  icon?: React.ReactNode;
   title: string;
   description?: string;
   action?: React.ReactNode;
@@ -17,7 +17,11 @@ export default function EmptyState({
 }: EmptyStateProps) {
   return (
     <View style={styles.container}>
-      <Text style={styles.icon}>{icon}</Text>
+      {typeof icon === 'string' ? (
+        <Text style={styles.icon}>{icon}</Text>
+      ) : (
+        <View style={styles.iconContainer}>{icon}</View>
+      )}
       <Text style={styles.title}>{title}</Text>
       {description && <Text style={styles.description}>{description}</Text>}
       {action && <View style={styles.action}>{action}</View>}
@@ -37,14 +41,17 @@ const styles = StyleSheet.create({
     fontSize: 64,
     marginBottom: 16,
   },
+  iconContainer: {
+    marginBottom: 16,
+  },
   title: {
-    ...textStyles.h4,
+    ...textStyles.featureTitle,
     color: colors.text.primary,
     marginBottom: 8,
     textAlign: 'center',
   },
   description: {
-    ...textStyles.body,
+    ...textStyles.bodyStandard,
     color: colors.text.tertiary,
     textAlign: 'center',
     marginBottom: 24,

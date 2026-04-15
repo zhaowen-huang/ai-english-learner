@@ -60,8 +60,8 @@ export default function Input({
         <TextInput
           style={[
             styles.input,
-            leftIcon && styles.inputWithLeftIcon,
-            (rightIcon || secureTextEntry) && styles.inputWithRightIcon,
+            leftIcon ? styles.inputWithLeftIcon : {},
+            (rightIcon || secureTextEntry) ? styles.inputWithRightIcon : {},
           ]}
           placeholderTextColor={colors.text.tertiary}
           onFocus={() => setIsFocused(true)}
@@ -78,9 +78,8 @@ export default function Input({
                 onPress={() => setShowPassword(!showPassword)}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <Text style={styles.showPasswordText}>
-                  {showPassword ? '🙈' : '👁️'}
-                </Text>
+                {/* @ts-ignore */}
+                {showPassword ? <EyeOff size={20} stroke={colors.text.tertiary} /> : <Eye size={20} stroke={colors.text.tertiary} />}
               </TouchableOpacity>
             ) : (
               rightIcon
@@ -124,10 +123,10 @@ const styles = StyleSheet.create({
   },
   inputContainerError: {
     borderColor: colors.border.error,
-    backgroundColor: colors.error.lighter,
+    backgroundColor: '#f8f0f0',  // Light error background
   },
   inputContainerDisabled: {
-    backgroundColor: colors.neutral[50],
+    backgroundColor: colors.sand,
     opacity: 0.6,
   },
   input: {
@@ -157,6 +156,6 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   errorText: {
-    color: colors.error.DEFAULT,
+    color: colors.error,
   },
 });
